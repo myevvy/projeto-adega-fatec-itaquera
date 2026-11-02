@@ -1,0 +1,29 @@
+{
+  "name": "projeto-adega-fatec-itaquera",
+  "version": "1.0.0",
+  "description": "Sistema de gestão de Adega",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myevvy/projeto-adega-fatec-itaquera.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/myevvy/projeto-adega-fatec-itaquera/issues"
+  },
+  "homepage": "https://github.com/myevvy/projeto-adega-fatec-itaquera#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.6"
+  }
+}
