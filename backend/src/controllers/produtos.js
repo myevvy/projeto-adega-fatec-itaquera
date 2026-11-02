@@ -33,22 +33,15 @@ const postProdutos = async (req, res) => {
       });
     }
 
-    if (
-      Number(precoV) < 0 ||
-      Number(custo) < 0 ||
-      Number(estoque) < 0 ||
-      Number(qntMinima) < 0 ||
-      !Number.isFinite(Number(precoV)) ||
-      !Number.isFinite(Number(custo)) ||
-      !Number.isFinite(Number(estoque)) ||
-      !Number.isFinite(Number(qntMinima))
-    ) {
+    if (!req.file) {
       return res.status(400).json({
-        mensagem: "Informe valores numéricos válidos e não negativos.",
+        mensagem: "Envie uma imagem para o produto.",
       });
     }
 
-    const existeProduto = await produtosModels.getProdutos(nome, categoria, precoV);
+    const imagem = `/uploads/produtos/${req.file.filename}`;
+
+    const existeProduto = await produtosModels.getProdutos(nome);
 
     if (existeProduto) {
       return res.status(409).json({
@@ -64,6 +57,7 @@ const postProdutos = async (req, res) => {
       estoque,
       qntMinima,
       desc,
+      imagem,
     });
 
     return res.status(201).json({
@@ -74,8 +68,7 @@ const postProdutos = async (req, res) => {
     console.log("Erro no post produto:", erro.message);
 
     return res.status(500).json({
-      mensagem:
-        "Erro interno ao cadastrar produto... Comunique-nos sobre o ocorrido",
+      mensagem: "Erro interno ao cadastrar produto.",
     });
   }
 };
