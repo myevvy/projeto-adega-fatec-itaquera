@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+vendor/
+
+# Builds e artefatos
+dist/
+build/
+*.class
+
+# Arquivos de sistema e IDE
+.DS_Store
+Thumbs.db
+.idea/
+
+# Variáveis de ambiente e segredos
+.env
+*.key   
