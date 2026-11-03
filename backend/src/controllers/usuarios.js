@@ -1,51 +1,65 @@
 import usuarioModel from "../models/usuarios.js";
+import sessaoModel from "../models/sessoes.js";
 import "../../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { createHash } from "crypto";
 
 const cadastro = async (req, res) => {
   try {
-    const { perfil, nome, email, telefone, senha } = req.body;
+    const { perfil_id, nome, email, telefone, senha } = req.body;
+
+    if (!perfil_id || !nome || !email || !senha) {
+      return res.status(400).json({
+        mensagem: "Preencha os campos obrigatórios.",
+      });
+    }
+
     const usuarioExiste = await usuarioModel.getUsuario(email);
-    if (usuarioExiste)
-      return res.status(409).json({ mensagem: "Esse usuário já existe" });
+
+    if (usuarioExiste) {
+      return res.status(409).json({
+        mensagem: "Esse usuário já existe.",
+      });
+    }
 
     const senha_hash = await bcrypt.hash(senha, 10);
+
     const idUsuario = await usuarioModel.postUsuario(
-      perfil,
+      perfil_id,
       nome,
       email,
       senha_hash,
       telefone,
     );
 
-    const token = jwt.sign(
-      { id: idUsuario, perfil },
-      process.env.ASSINATURA_TOKEN,
-      { expiresIn: "8h" },
-    );
-
-    if (idUsuario)
-      return res.status(201).json({
-        mensagem: "Usuário cadastrado com sucesso!",
-        id: { idUsuario },
-        token,
+    if (!idUsuario) {
+      return res.status(400).json({
+        mensagem: "Não foi possível cadastrar o usuário.",
       });
+    }
+
+    return res.status(201).json({
+      mensagem: "Usuário cadastrado com sucesso!",
+      id: idUsuario,
+    });
   } catch (erro) {
-    console.log("Erro no cadastro: ", erro.message);
-    return res
-      .status(500)
-      .json({ mensagem: "Erro interno ao cadastrar usuário" });
+    console.log("Erro no cadastro:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao cadastrar usuário.",
+    });
   }
 };
 
 const login = async (req, res) => {
   try {
     const { email, senha } = req.body;
+
     if (!email || !senha) {
-      return res
-        .status(400)
-        .json({ mensagem: "Preencha os campos obrigatórios" });
+      return res.status(400).json({
+        mensagem: "Preencha os campos obrigatórios.",
+      });
     }
 
     const usuario = await usuarioModel.getUsuario(email);
@@ -53,6 +67,12 @@ const login = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({
         mensagem: "Usuário não encontrado.",
+      });
+    }
+
+    if (!usuario.ativo) {
+      return res.status(403).json({
+        mensagem: "Usuário desativado. Entre em contato com o administrador.",
       });
     }
 
@@ -65,11 +85,15 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: usuario.id, perfil: usuario.perfil },
+      {
+        id: usuario.id,
+        perfil_id: usuario.perfil_id,
+      },
       process.env.ASSINATURA_TOKEN,
+      { expiresIn: "8h" },
     );
 
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
 
     await sessaoModel.criarSessao(usuario.id, tokenHash);
 
@@ -78,14 +102,21 @@ const login = async (req, res) => {
       token,
       usuario: {
         id: usuario.id,
+        perfil_id: usuario.perfil_id,
         nome: usuario.nome,
         email: usuario.email,
       },
     });
   } catch (erro) {
-    console.log("Erro no login: ", erro.message);
-    return res.status(500).json({ mensagem: "Erro interno ao logar usuário" });
+    console.log("Erro no login:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao logar usuário.",
+    });
   }
 };
 
-export default { cadastro, login };
+export default {
+  cadastro,
+  login,
+};
