@@ -36,6 +36,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'adega-bom-sabor'
-          slot-name: 'Production'
           package: frontend/dist
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3BA817728A1140D99C687346FA2220AC }}
