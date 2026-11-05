@@ -77,7 +77,7 @@ const putProdutos = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
 
-    const produto = await produtosModels.getProdutos(idProduto);
+    const produto = await produtosModels.getProdutosID(idProduto);
 
     if (!produto || !produto.ativo) {
       return res.status(404).json({
@@ -106,7 +106,7 @@ const deleteProdutos = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
 
-    const produto = await produtosModels.getProdutos(idProduto);
+    const produto = await produtosModels.getProdutosID(idProduto);
 
     if (!produto || !produto.ativo) {
       return res.status(404).json({

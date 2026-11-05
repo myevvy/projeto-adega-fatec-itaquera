@@ -5,6 +5,22 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
 
+
+const getUsuarios = async (_req, res) => {
+  try {
+    const usuarios = await usuarioModel.getUsuario();
+
+    return res.status(200).json(usuarios);
+  } catch (erro) {
+    console.error("Erro ao buscar usuários:", erro.message);
+
+    return res.status(500).json({
+      mensagem:
+        "Erro interno ao recuperar usuários... Comunique-nos sobre o ocorrido",
+    });
+  }
+};
+
 const cadastro = async (req, res) => {
   try {
     const { perfil_id, nome, email, telefone, senha } = req.body;
@@ -130,7 +146,7 @@ const putUsuario = async (req, res) => {
     const { nome, email, senha, end, cep, tel, aniversario, sobre, cargo } =
       req.body;
 
-    const usuarioExiste = await usuarioModel.getUsuarioPorId(idU);
+    const usuarioExiste = await usuarioModel.getUsuarioID(idU);
 
     if (!usuarioExiste) {
       return res.status(404).json({
@@ -225,6 +241,7 @@ const desativarUsuario = async (req, res) => {
 };
 
 export default {
+  getUsuarios,
   cadastro,
   login,
   putUsuario,
