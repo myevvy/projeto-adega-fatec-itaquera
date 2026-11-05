@@ -5,6 +5,22 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
 
+
+const getUsuarios = async (_req, res) => {
+  try {
+    const usuarios = await usuarioModel.getUsuario();
+
+    return res.status(200).json(usuarios);
+  } catch (erro) {
+    console.error("Erro ao buscar usuários:", erro.message);
+
+    return res.status(500).json({
+      mensagem:
+        "Erro interno ao recuperar usuários... Comunique-nos sobre o ocorrido",
+    });
+  }
+};
+
 const cadastro = async (req, res) => {
   try {
     const { perfil_id, nome, email, telefone, senha } = req.body;
@@ -116,7 +132,118 @@ const login = async (req, res) => {
   }
 };
 
+const putUsuario = async (req, res) => {
+  try {
+    const idU = Number(req.params.id);
+    const { id, tipo: tipo_logado } = req.usuario;
+
+    if (id !== idU && tipo_logado !== "ADMINISTRADOR") {
+      return res.status(403).json({
+        mensagem: "Sem permissão.",
+      });
+    }
+
+    const { nome, email, senha, end, cep, tel, aniversario, sobre, cargo } =
+      req.body;
+
+    const usuarioExiste = await usuarioModel.getUsuarioID(idU);
+
+    if (!usuarioExiste) {
+      return res.status(404).json({
+        mensagem: "Usuário não encontrado.",
+      });
+    }
+
+    let senha_hash;
+
+    if (senha) {
+      senha_hash = await bcrypt.hash(senha, 10);
+    }
+
+    const atualizado = await usuarioModel.putUsuario(
+      idU,
+      nome,
+      email,
+      senha_hash,
+      end,
+      cep,
+      tel,
+      aniversario,
+      sobre,
+      cargo,
+      tipo_logado,
+    );
+
+    if (!atualizado) {
+      return res.status(400).json({
+        mensagem: "Não foi possível atualizar o usuário.",
+      });
+    }
+
+    return res.status(200).json({
+      mensagem: "Usuário atualizado com sucesso!",
+    });
+  } catch (erro) {
+    console.log("Erro no update:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao atualizar usuário.",
+    });
+  }
+};
+
+const desativarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { id: idUsuario } = req.usuario;
+
+    const statusValidos = ["ativo", "desativado"];
+
+    if (!statusValidos.includes(status)) {
+      return res.status(400).json({
+        mensagem: "Status inválido.",
+      });
+    }
+
+    if (Number(id) === Number(idUsuario)) {
+      return res.status(403).json({
+        mensagem: "Você não pode alterar o status da sua própria conta.",
+      });
+    }
+
+    const usuarioExiste = await usuarioModel.getUsuarioPorId(id);
+
+    if (!usuarioExiste) {
+      return res.status(404).json({
+        mensagem: "Usuário não encontrado.",
+      });
+    }
+
+    const atualizado = await usuarioModel.alterarStatus(id, status);
+
+    if (!atualizado) {
+      return res.status(400).json({
+        mensagem: "Não foi possível alterar o status do usuário.",
+      });
+    }
+
+    return res.status(200).json({
+      mensagem: "Status do usuário alterado com sucesso!",
+    });
+  } catch (erro) {
+    console.log("Erro no alterar status:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro ao alterar status do usuário.",
+    });
+  }
+};
+
 export default {
+  getUsuarios,
   cadastro,
   login,
+  putUsuario,
+  desativarUsuario
 };
