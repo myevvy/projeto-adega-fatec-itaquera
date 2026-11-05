@@ -1,4 +1,4 @@
-import db from "../../config/db.js";
+import db from "../../../config/db.js";
 
 const SELECT_BASE = `
   SELECT p.id, p.nome, p.descricao_produto AS descricao, p.foto_url AS imagem,
