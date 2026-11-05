@@ -6,7 +6,7 @@ const getFornecedores = async (_req, res) => {
 
     return res.status(200).json(fornecedores);
   } catch (erro) {
-    console.error("Erro ao buscar produtos:", erro.message);
+    console.error("Erro ao buscar fornecedores:", erro.message);
 
     return res.status(500).json({
       mensagem:
@@ -18,7 +18,6 @@ const getFornecedores = async (_req, res) => {
 const postFornecedores = async (req, res) => {
   try {
     const { nome, telefone, email, end } = req.body;
-    req.body;
 
     if (!nome || !telefone || !email || !end) {
       return res.status(400).json({
@@ -53,7 +52,7 @@ const putFornecedor = async (req, res) => {
   try {
     const { id: idFornecedor } = req.params;
 
-    const fornecedor = await produtosModels.getFornecedorID(idFornecedor);
+    const fornecedor = await fornecedoresModels.getFornecedorID(idFornecedor);
 
     if (!fornecedor || !fornecedor.ativo) {
       return res.status(404).json({
@@ -90,7 +89,7 @@ const deleteFornecedor = async (req, res) => {
       });
     }
 
-    const linhasAfetadas = await fornecedoresModels.deleteProdutos(idFornecedor);
+    const linhasAfetadas = await fornecedoresModels.deleteFornecedor(idFornecedor);
 
     if (!linhasAfetadas) {
       return res.status(404).json({
