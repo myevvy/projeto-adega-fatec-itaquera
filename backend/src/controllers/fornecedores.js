@@ -1,4 +1,4 @@
-import fornecedoresModels from "../models/fornecedores.js";
+import fornecedoresModels from "../models/estoque/fornecedores.js";
 
 const getFornecedores = async (_req, res) => {
   try {

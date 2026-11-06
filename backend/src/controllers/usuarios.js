@@ -1,5 +1,5 @@
-import usuarioModel from "../models/usuarios.js";
-import sessaoModel from "../models/sessoes.js";
+import usuarioModel from "../models/auth/usuarios.js";
+import sessaoModel from "../models/auth/sessoes.js";
 import "../../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";

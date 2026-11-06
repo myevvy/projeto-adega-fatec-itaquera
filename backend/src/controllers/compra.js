@@ -1,4 +1,4 @@
-import comprasModel from "../models/compras.js";
+import comprasModel from "../models/comercial/compras.js";
 import dayjs from "dayjs";
 
 const getCompras = async (_req, res) => {
