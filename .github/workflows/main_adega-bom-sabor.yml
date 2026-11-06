@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: adega-bom-sabor
+name: adega-bom-sabor-backend
 
 on:
   push:
@@ -18,23 +18,45 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Use Node.js
-        uses: actions/setup-node@v5
+      - name: Sign in to Azure
+        uses: azure/login@v2
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install dependencies and build frontend
-        working-directory: frontend
+      - name: Configure backend database settings
+        env:
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ vars.DB_NAME }}
         run: |
-          npm ci
-          npm run build
+          : "${DB_HOST:?DB_HOST repository variable is required}"
+          : "${DB_PORT:?DB_PORT repository variable is required}"
+          : "${DB_USER:?DB_USER repository secret is required}"
+          : "${DB_PASSWORD:?DB_PASSWORD repository secret is required}"
+          : "${DB_NAME:?DB_NAME repository variable is required}"
+          resource_group=$(az webapp list --query "[?name=='adega-bom-sabor'].resourceGroup | [0]" --output tsv)
+          if [ -z "$resource_group" ]; then
+            echo "Azure Web App adega-bom-sabor was not found or is not accessible."
+            exit 1
+          fi
+          az webapp config appsettings set \
+            --resource-group "$resource_group" \
+            --name adega-bom-sabor \
+            --settings \
+              "DB_HOST=$DB_HOST" \
+              "DB_PORT=$DB_PORT" \
+              "DB_USER=$DB_USER" \
+              "DB_PASSWORD=$DB_PASSWORD" \
+              "DB_NAME=$DB_NAME" \
+              "SCM_DO_BUILD_DURING_DEPLOYMENT=true" \
+            --output none
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy backend to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'adega-bom-sabor'
-          package: frontend/dist
+          package: backend
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3BA817728A1140D99C687346FA2220AC }}
