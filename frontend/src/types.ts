@@ -17,6 +17,16 @@ export type AppPath =
   | 'financeiro'
   | 'financeiro/despesas/nova'
   | 'financeiro/despesas/relatorio'
+  | 'relatorios'
+  | 'compras'
+  | 'compras/nova'
+  | 'esqueci-senha'
+  | 'fornecedores'
+  | 'fornecedores/novo'
+  | `fornecedores/${string}`
+  | `fornecedores/${string}/editar`
+  | 'configuracoes'
+  | 'perfil'
 
 export type SalesPeriod = 'today' | '7' | '30' | '90' | '180' | '365' | 'all'
 

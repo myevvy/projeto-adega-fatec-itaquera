@@ -4,13 +4,13 @@ import FormField from '../../components/form-field/FormField'
 
 type LoginPageProps = {
   onCreateAccount: () => void
+  onForgotPassword: () => void
   onLogin: () => void
 }
 
-function LoginPage({ onCreateAccount, onLogin }: LoginPageProps) {
+function LoginPage({ onCreateAccount, onForgotPassword, onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
 
   return (
     <AuthLayout description="Gestão de vendas e estoque">
@@ -39,14 +39,10 @@ function LoginPage({ onCreateAccount, onLogin }: LoginPageProps) {
           type="password"
           value={password}
         />
-        <button
-          onClick={() => setMessage('Recuperação de senha não disponível nesta demonstração.')}
-          type="button"
-        >
+        <button onClick={onForgotPassword} type="button">
           Esqueci minha senha
         </button>
         <button type="submit">Entrar</button>
-        {message && <p role="status">{message}</p>}
         <p>
           Ainda não tem conta?{' '}
           <button onClick={onCreateAccount} type="button">

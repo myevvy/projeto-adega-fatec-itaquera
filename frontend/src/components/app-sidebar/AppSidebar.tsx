@@ -11,9 +11,9 @@ const navigationItems: { label: string; page?: AppPath }[] = [
   { label: 'Vendas', page: 'vendas' as const },
   { label: 'Estoque', page: 'estoque' as const },
   { label: 'Financeiro', page: 'financeiro' as const },
-  { label: 'Fornecedores' },
-  { label: 'Compras' },
-  { label: 'Relatórios' },
+  { label: 'Fornecedores', page: 'fornecedores' as const },
+  { label: 'Compras', page: 'compras' as const },
+  { label: 'Relatórios', page: 'relatorios' as const },
 ]
 
 function AppSidebar({
@@ -27,6 +27,13 @@ function AppSidebar({
         <strong aria-hidden="true">■ </strong>
         Adega Bom Sabor
       </p>
+      <button
+        aria-current={currentPage === 'configuracoes' ? 'page' : undefined}
+        onClick={() => onNavigate('configuracoes')}
+        type="button"
+      >
+        Configurações
+      </button>
       <nav aria-label="Navegação principal">
         <ul>
           {navigationItems.map((item) => (
@@ -38,6 +45,10 @@ function AppSidebar({
                     (item.page === 'vendas' && currentPage.startsWith('vendas')) ||
                     (item.page === 'financeiro' &&
                       currentPage.startsWith('financeiro')) ||
+                    (item.page === 'fornecedores' &&
+                      currentPage.startsWith('fornecedores')) ||
+                    (item.page === 'compras' &&
+                      currentPage.startsWith('compras')) ||
                     item.page === 'estoque' &&
                       (currentPage.startsWith('estoque') ||
                         currentPage.startsWith('produtos'))
@@ -57,7 +68,13 @@ function AppSidebar({
         </ul>
       </nav>
       <footer>
-        <p>{userName || 'Marcos Almeida'}</p>
+        <button
+          aria-current={currentPage === 'perfil' ? 'page' : undefined}
+          onClick={() => onNavigate('perfil')}
+          type="button"
+        >
+          {userName || 'Marcos Almeida'}
+        </button>
         <p>Administrador</p>
       </footer>
     </aside>
