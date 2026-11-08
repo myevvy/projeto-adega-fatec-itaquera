@@ -7,7 +7,7 @@ import compras from "./controllers/compra.js";
 import verificaAdm from "./middlewares/verificacoesUsuario.js";
 import autentica from "./middlewares/auth.js";
 import vendas from "./controllers/financeiro/vendas.js";
-import despesas from "./controllers/financeiro/despesa.js"
+import despesas from "./controllers/financeiro/despesa.js";
 import upload from "./middlewares/uploadProdutos.js";
 
 router.get("/usuarios", usuarios.getUsuarios);
@@ -33,7 +33,11 @@ router.post("/compras", autentica.autenticar, compras.postCompra);
 router.delete("/compras/:id", autentica.autenticar, compras.cancelarCompra);
 
 router.get("/vendas", vendas.getVendas);
-router.get("/vendas/usuario/:id", autentica.autenticar, vendas.getVendasUsuario);
+router.get(
+  "/vendas/usuario/:id",
+  autentica.autenticar,
+  vendas.getVendasUsuario,
+);
 router.post("/vendas", autentica.autenticar, vendas.postVendas);
 router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 
@@ -42,7 +46,11 @@ router.post("/despesas", autentica.autenticar, despesas.postDespesas);
 router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
 
 router.get("/notificacoes", autentica.autenticar, getNotificacoes);
-router.get("/notificacoes/nao-lidas/total", autentica.autenticar, getTotalNaoLidas);
+router.get(
+  "/notificacoes/nao-lidas/total",
+  autentica.autenticar,
+  getTotalNaoLidas,
+);
 router.patch("/notificacoes/:id/lida", autentica.autenticar, marcarComoLida);
 
 router.get("/produtos", produtos.getProdutos);
