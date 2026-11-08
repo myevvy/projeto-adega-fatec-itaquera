@@ -7,6 +7,7 @@ import compras from "./controllers/compra.js";
 import verificaAdm from "./middlewares/verificacoesUsuario.js";
 import autentica from "./middlewares/auth.js";
 import vendas from "./controllers/financeiro/vendas.js";
+import despesas from "./controllers/financeiro/despesa.js"
 import upload from "./middlewares/uploadProdutos.js";
 
 router.get("/usuarios", usuarios.getUsuarios);
@@ -34,6 +35,10 @@ router.get("/vendas", vendas.getVendas);
 router.get("/vendas/usuario/:id", autentica.autenticar, vendas.getVendasUsuario);
 router.post("/vendas", autentica.autenticar, vendas.postVendas);
 router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
+
+router.get("/despesas", despesas.getDespesas);
+router.post("/despesas", autentica.autenticar, despesas.postDespesas);
+router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
 
 router.get("/produtos", produtos.getProdutos);
 router.get("/produtos/inativos", produtos.getProdutosInativos);
