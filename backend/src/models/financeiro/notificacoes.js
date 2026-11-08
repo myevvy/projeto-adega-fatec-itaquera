@@ -38,8 +38,17 @@ const postNotificacao = async (dados) => {
   return rows[0];
 };
 
+const contarNaoLidas = async (usuarioId) => {
+  const [rows] = await db.query(
+    "SELECT COUNT(*) AS total FROM notificacao WHERE usuario_id = ? AND lida = FALSE",
+    [usuarioId]
+  );
+  return rows[0].total;
+};
+
 export default {
   getNotificacoesUsuario,
   marcarComoLida,
   postNotificacao,
+  contarNaoLidas,
 };

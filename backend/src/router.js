@@ -13,6 +13,7 @@ import upload from "./middlewares/uploadProdutos.js";
 router.get("/usuarios", usuarios.getUsuarios);
 router.post("/cadastro", usuarios.cadastro);
 router.post("/login", usuarios.login);
+router.post("/logout", autentica.autenticar, usuarios.logout);
 router.put("/usuarios/:id", autentica.autenticar, usuarios.putUsuario);
 router.delete(
   "/usuarios/:id",
@@ -39,6 +40,10 @@ router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 router.get("/despesas", despesas.getDespesas);
 router.post("/despesas", autentica.autenticar, despesas.postDespesas);
 router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
+
+router.get("/notificacoes", autentica.autenticar, getNotificacoes);
+router.get("/notificacoes/nao-lidas/total", autentica.autenticar, getTotalNaoLidas);
+router.patch("/notificacoes/:id/lida", autentica.autenticar, marcarComoLida);
 
 router.get("/produtos", produtos.getProdutos);
 router.get("/produtos/inativos", produtos.getProdutosInativos);

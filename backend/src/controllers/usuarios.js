@@ -133,6 +133,28 @@ const login = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    const linhasAfetadas = await sessaoModel.encerrarSessao(req.tokenHash);
+
+    if (!linhasAfetadas) {
+      return res.status(401).json({
+        mensagem: "Sessão não encontrada ou já encerrada.",
+      });
+    }
+
+    return res.status(200).json({
+      mensagem: "Logout realizado com sucesso!",
+    });
+  } catch (erro) {
+    console.log("Erro no logout:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao deslogar usuário.",
+    });
+  }
+};
+
 const putUsuario = async (req, res) => {
   try {
     const idU = Number(req.params.id);
@@ -235,6 +257,7 @@ export default {
   getUsuarios,
   cadastro,
   login,
+  logout,
   putUsuario,
   desativarUsuario,
 };
