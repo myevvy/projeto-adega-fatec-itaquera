@@ -44,48 +44,40 @@ const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
 };
 
 const putUsuario = async (
-  id,
-  nome,
-  email,
-  senha_hash,
-  _end,
-  _cep,
-  tel,
-  aniversario,
-  _sobre,
-  cargo,
-  tipo_logado,
+  id, nome, email, senha_hash, _end, _cep, tel, aniversario, _sobre, cargo, tipo_logado
 ) => {
-  const vazio = (v) => (v === "" ? null : v);
+  const vazio = (v) => (v === "" || v === undefined ? null : v);
 
   const campos = {
-    nome,
-    email,
-    senha_hash,
+    nome: vazio(nome),
+    email: vazio(email),
     telefone: vazio(tel),
     data_nascimento: vazio(aniversario),
   };
-  if (tipo_logado === "ADMINISTRADOR") campos.cargo = vazio(cargo);
+
+  if (senha_hash !== undefined && senha_hash !== null) {
+    campos.senha_hash = senha_hash;
+  }
+
+  if (tipo_logado === "ADMINISTRADOR" && cargo !== undefined) {
+    campos.cargo = vazio(cargo);
+  }
 
   const chaves = Object.keys(campos).filter((k) => campos[k] !== undefined);
   if (chaves.length === 0) return false;
 
-  if (email !== undefined) {
-    const [outro] = await db.query(
-      "SELECT id FROM usuario WHERE email = ? AND id <> ?",
-      [email, id],
-    );
-    if (outro.length > 0)
-      throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
+  if (email !== undefined && email !== null) {
+    const [outro] = await db.query("SELECT id FROM usuario WHERE email = ? AND id <> ?", [email, id]);
+    if (outro.length > 0) throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
   }
 
   const sets = chaves.map((k) => `${k} = ?`).join(", ");
-  await db.query(`UPDATE usuario SET ${sets} WHERE id = ?`, [
-    ...chaves.map((k) => campos[k]),
-    id,
-  ]);
+  const valores = [...chaves.map((k) => campos[k]), id];
+
+  await db.query(`UPDATE usuario SET ${sets} WHERE id = ?`, valores);
   return true;
 };
+
 
 const alterarStatus = async (id, status) => {
   const ativo = status === 1;
