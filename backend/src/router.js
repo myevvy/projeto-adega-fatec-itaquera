@@ -6,6 +6,7 @@ import fornecedores from "./controllers/fornecedores.js";
 import compras from "./controllers/compra.js";
 import verificaAdm from "./middlewares/verificacoesUsuario.js";
 import autentica from "./middlewares/auth.js";
+import vendas from "./controllers/financeiro/vendas.js";
 import upload from "./middlewares/uploadProdutos.js";
 
 router.get("/usuarios", usuarios.getUsuarios);
@@ -28,6 +29,11 @@ router.get("/compras", compras.getCompras);
 router.get("/compras/fornecedor/:id", compras.getComprasFornecedor);
 router.post("/compras", autentica.autenticar, compras.postCompra);
 router.delete("/compras/:id", autentica.autenticar, compras.cancelarCompra);
+
+router.get("/vendas", vendas.getVendas);
+router.get("/vendas/usuario/:id", autentica.autenticar, vendas.getVendasUsuario);
+router.post("/vendas", autentica.autenticar, vendas.postVendas);
+router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 
 router.get("/produtos", produtos.getProdutos);
 router.get("/produtos/inativos", produtos.getProdutosInativos);
