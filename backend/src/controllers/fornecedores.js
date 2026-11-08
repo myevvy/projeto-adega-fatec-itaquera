@@ -18,9 +18,9 @@ const getFornecedores = async (req, res) => {
 
 const postFornecedores = async (req, res) => {
   try {
-    const { nome, telefone, email, end } = req.body;
+    const { nome, telefone } = req.body;
 
-    if (!nome || !telefone || !email || !end) {
+    if (!nome || !telefone) {
       return res.status(400).json({
         mensagem: "Preencha os campos obrigatórios.",
       });
@@ -56,7 +56,7 @@ const putFornecedor = async (req, res) => {
     const fornecedor = await fornecedoresModels.getFornecedorID(idFornecedor);
 
     if (!fornecedor || !fornecedor.ativo) {
-      return res.status(400).json({
+      return res.status(404).json({
         mensagem: "Fornecedor não encontrado.",
       });
     }

@@ -1,5 +1,9 @@
-import sessaoModel from "../models/sessoes.js";
-
+import "../../config/env.js";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import sessaoModel from "../models/auth/sessoes.js";
+const sha256 = (valor) =>
+  crypto.createHash("sha256").update(valor).digest("hex");
 const autenticar = async (req, res, next) => {
   try {
     const header = req.headers.authorization;
@@ -22,6 +26,7 @@ const autenticar = async (req, res, next) => {
     try {
       payload = jwt.verify(token, process.env.ASSINATURA_TOKEN);
     } catch {
+      console.log("Erro JWT:", erro.name, erro.message);
       return res.status(401).json({ mensagem: "Token inválido ou expirado." });
     }
 

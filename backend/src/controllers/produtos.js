@@ -62,7 +62,6 @@ const postProdutos = async (req, res) => {
       estoque,
       qntMinima,
       desc,
-      imagem,
     });
 
     return res.status(201).json({
@@ -93,7 +92,13 @@ const putProdutos = async (req, res) => {
 
     const dados = req.body;
 
-    await produtosModels.putProdutos(idProduto, dados, id);
+    const atualizado = await produtosModels.putProdutos(idProduto, dados, id);
+
+    if (!atualizado) {
+      return res.status(400).json({
+        mensagem: "Nenhum campo válido para atualização foi informado.",
+      });
+    }
 
     return res.status(200).json({
       mensagem: "Produto alterado com sucesso!",
@@ -108,12 +113,67 @@ const putProdutos = async (req, res) => {
   }
 };
 
+const alterarQuantidade = async (req, res) => {
+  try {
+    const { quantidade, tipo, quantidadeMovimentada } = req.body;
+    const { id } = req.params;
+    const { id: usuario_id } = req.usuario;
+
+    const novaMovimentacao =
+      tipo !== undefined || quantidadeMovimentada !== undefined;
+
+    if (novaMovimentacao) {
+      if (
+        !["entrada", "saida"].includes(tipo) ||
+        !Number.isSafeInteger(quantidadeMovimentada) ||
+        quantidadeMovimentada <= 0
+      ) {
+        return res.status(400).json({
+          mensagem:
+            "Informe uma entrada ou saída e uma quantidade inteira maior que zero.",
+        });
+      }
+    } else if (!Number.isSafeInteger(quantidade) || quantidade < 0) {
+      return res.status(400).json({
+        mensagem:
+          "A quantidade deve ser um número inteiro maior ou igual a zero.",
+      });
+    }
+
+    const saldoAtualizado = await produtosModels.alterarQuantidade(
+      id,
+      { quantidade, tipo, quantidadeMovimentada },
+      usuario_id,
+    );
+
+    if (saldoAtualizado === null) {
+      return res.status(404).json({
+        mensagem: "Produto não encontrado.",
+      });
+    }
+
+    return res.status(200).json({
+      mensagem: "Quantidade alterada com sucesso!",
+      quantidade: saldoAtualizado,
+    });
+  } catch (erro) {
+    console.error("Erro ao alterar quantidade:", erro);
+
+    if (erro.code === "QUANTIDADE_INVALIDA") {
+      return res.status(400).json({ mensagem: erro.message });
+    }
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao alterar quantidade.",
+    });
+  }
+};
 const deleteProdutos = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
     const { id } = req.usuario;
 
-    const produto = await produtosModels.getProdutosID(idProduto);
+    const produto = await produtosModels.getProdutos(idProduto);
 
     if (!produto || !produto.ativo) {
       return res.status(404).json({
@@ -145,7 +205,7 @@ const reativarProduto = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
 
-    const produto = await produtosModels.getProdutosID(idProduto);
+    const produto = await produtosModels.getProdutos(idProduto);
 
     if (!produto) {
       return res.status(404).json({
@@ -153,7 +213,11 @@ const reativarProduto = async (req, res) => {
       });
     }
 
-    const linhasAfetadas = await produtosModels.deleteProdutos(idProduto);
+    if (produto.ativo) {
+      return res.status(409).json({ mensagem: "O produto já está ativo." });
+    }
+
+    const linhasAfetadas = await produtosModels.reativarProduto(idProduto);
 
     if (!linhasAfetadas) {
       return res.status(404).json({
@@ -227,5 +291,6 @@ export default {
   reativarProduto,
   getProdutosInativos,
   getHistoricoPreco,
-  getEstoqueAlertas
+  getEstoqueAlertas,
+  alterarQuantidade,
 };

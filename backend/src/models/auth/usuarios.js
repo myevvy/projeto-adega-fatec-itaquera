@@ -1,6 +1,7 @@
 import db from "../../../config/db.js";
 
-const erroNegocio = (code, mensagem) => Object.assign(new Error(mensagem), { code });
+const erroNegocio = (code, mensagem) =>
+  Object.assign(new Error(mensagem), { code });
 
 const CAMPOS_PUBLICOS =
   "u.id, u.perfil_id, p.nome AS tipo, u.nome, u.email, u.telefone, " +
@@ -9,23 +10,29 @@ const FROM = "FROM usuario u JOIN perfil p ON p.id = u.perfil_id";
 
 const getUsuario = async (email) => {
   if (email === undefined) {
-    const [rows] = await db.query(`SELECT ${CAMPOS_PUBLICOS} ${FROM} ORDER BY u.nome`);
+    const [rows] = await db.query(
+      `SELECT ${CAMPOS_PUBLICOS} ${FROM}
+       WHERE u.ativo = 1
+       ORDER BY u.nome`,
+    );
     return rows;
   }
   const [rows] = await db.query(
-    `SELECT ${CAMPOS_PUBLICOS}, u.senha_hash ${FROM} WHERE u.email = ?`,
+    `SELECT ${CAMPOS_PUBLICOS}, u.senha_hash ${FROM}
+     WHERE u.email = ? AND u.ativo = 1`,
     [email],
   );
+
   return rows[0] || null;
 };
 
 const getUsuarioID = async (id) => {
-  const [rows] = await db.query(`SELECT ${CAMPOS_PUBLICOS} ${FROM} WHERE u.id = ?`, [id]);
+  const [rows] = await db.query(
+    `SELECT ${CAMPOS_PUBLICOS} ${FROM} WHERE u.id = ?`,
+    [id],
+  );
   return rows[0] || null;
 };
-
-// O controller usa os dois nomes
-const getUsuarioPorId = getUsuarioID;
 
 const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
   const [result] = await db.query(
@@ -36,9 +43,18 @@ const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
   return result.insertId;
 };
 
-
 const putUsuario = async (
-  id, nome, email, senha_hash, _end, _cep, tel, aniversario, _sobre, cargo, tipo_logado,
+  id,
+  nome,
+  email,
+  senha_hash,
+  _end,
+  _cep,
+  tel,
+  aniversario,
+  _sobre,
+  cargo,
+  tipo_logado,
 ) => {
   const vazio = (v) => (v === "" ? null : v);
 
@@ -55,8 +71,12 @@ const putUsuario = async (
   if (chaves.length === 0) return false;
 
   if (email !== undefined) {
-    const [outro] = await db.query("SELECT id FROM usuario WHERE email = ? AND id <> ?", [email, id]);
-    if (outro.length > 0) throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
+    const [outro] = await db.query(
+      "SELECT id FROM usuario WHERE email = ? AND id <> ?",
+      [email, id],
+    );
+    if (outro.length > 0)
+      throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
   }
 
   const sets = chaves.map((k) => `${k} = ?`).join(", ");
@@ -68,7 +88,7 @@ const putUsuario = async (
 };
 
 const alterarStatus = async (id, status) => {
-  const ativo = status === "ativo";
+  const ativo = status === 1;
 
   const conn = await db.getConnection();
   try {
@@ -93,7 +113,6 @@ const alterarStatus = async (id, status) => {
 export default {
   getUsuario,
   getUsuarioID,
-  getUsuarioPorId,
   postUsuario,
   putUsuario,
   alterarStatus,

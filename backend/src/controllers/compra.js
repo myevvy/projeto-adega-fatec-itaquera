@@ -1,3 +1,4 @@
+import fornecedorModel from "../models/estoque/fornecedores.js";
 import comprasModel from "../models/comercial/compras.js";
 import dayjs from "dayjs";
 
@@ -19,6 +20,7 @@ const getCompras = async (_req, res) => {
 const getComprasFornecedor = async (req, res) => {
   try {
     const { id: idFornecedor } = req.params;
+
     const compras = await comprasModel.getComprasFornecedor(idFornecedor);
 
     return res.status(200).json(compras);
@@ -34,35 +36,58 @@ const getComprasFornecedor = async (req, res) => {
 
 const postCompra = async (req, res) => {
   try {
-    const { data, subtotal, total, frete } = req.body;
+    //o front procura e ja retorna o fornecedor_id
+    const { fornecedor_id, data, subtotal, total, frete, itens } = req.body;
+    
+    const usuarioId = req.usuario?.id;
 
-    const dataUsuario = dayjs(data);
-
-    if (!dataUsuario.isValid()) {
-      return res.status(400).json({ mensagem: "Data inválida." });
+    if (!usuarioId) {
+      return res.status(401).json({
+        mensagem: "Usuário não autenticado.",
+      });
     }
 
-    if (!data || subtotal == null || total == null || frete == null) {
+    const fornecedor = await fornecedorModel.getFornecedorID(fornecedor_id);
+    if(!fornecedor){
+      return res.status(404).json({
+        mensagem: "Fornecedor não encontrado.",
+      });
+    }
+
+    if (
+      !(fornecedor ?? fornecedor_id) ||
+      !data ||
+      subtotal == null ||
+      total == null ||
+      frete == null ||
+      !Array.isArray(itens) ||
+      itens.length === 0
+    ) {
       return res.status(400).json({
         mensagem: "Preencha os campos obrigatórios.",
       });
     }
 
-    const existeCompra = await comprasModel.getCompra(data, total);
-
-    if (existeCompra) {
-      return res.status(409).json({
-        mensagem: "Essa compra já está cadastrado.",
+    if (!dayjs(data).isValid()) {
+      return res.status(400).json({
+        mensagem: "Data inválida.",
       });
     }
-    const compra = await comprasModel.postCompra(req.body);
+
+    const compra = await comprasModel.postCompra(req.body, usuarioId);
 
     return res.status(201).json({
       mensagem: "Compra cadastrada com sucesso!",
       compra,
     });
   } catch (erro) {
-    console.log("Erro no post compra:", erro.message);
+    console.error("Erro no post compra:", erro.message);
+
+    if (erro.code) {
+      return res.status(400).json({
+        mensagem: erro.message,
+      });
+    }
 
     return res.status(500).json({
       mensagem: "Erro interno ao cadastrar compra.",
@@ -73,20 +98,22 @@ const postCompra = async (req, res) => {
 const cancelarCompra = async (req, res) => {
   try {
     const { id: idCompra } = req.params;
+    const usuarioId = req.usuario?.id;
 
-    const compra = await comprasModel.getCompraID(idCompra);
-
-    if (!compra || compra.status === "CANCELADA") {
-      return res.status(404).json({
-        mensagem: "Compra não encontrada.",
+    if (!usuarioId) {
+      return res.status(401).json({
+        mensagem: "Usuário não autenticado.",
       });
     }
 
-    const linhasAfetadas = await comprasModel.cancelarCompra(idCompra);
+    const linhasAfetadas = await comprasModel.cancelarCompra(
+      idCompra,
+      usuarioId,
+    );
 
     if (!linhasAfetadas) {
       return res.status(404).json({
-        mensagem: "Erro ao cancelar compra.",
+        mensagem: "Compra não encontrada ou já cancelada.",
       });
     }
 
@@ -94,7 +121,19 @@ const cancelarCompra = async (req, res) => {
       mensagem: "Compra cancelada com sucesso!",
     });
   } catch (erro) {
-    console.log("Erro no cancelar compra:", erro.message);
+    console.error("Erro no cancelar compra:", erro.message);
+
+    if (erro.code === "ESTOQUE_INSUFICIENTE") {
+      return res.status(409).json({
+        mensagem: erro.message,
+      });
+    }
+
+    if (erro.code) {
+      return res.status(400).json({
+        mensagem: erro.message,
+      });
+    }
 
     return res.status(500).json({
       mensagem: "Erro interno ao cancelar compra.",

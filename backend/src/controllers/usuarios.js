@@ -5,10 +5,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
 
-
-const getUsuarios = async (_req, res) => {
+const getUsuarios = async (req, res) => {
   try {
-    const usuarios = await usuarioModel.getUsuario();
+    const { email } = req.query;
+    const usuarios = await usuarioModel.getUsuario(email);
 
     return res.status(200).json(usuarios);
   } catch (erro) {
@@ -104,6 +104,7 @@ const login = async (req, res) => {
       {
         id: usuario.id,
         perfil_id: usuario.perfil_id,
+        perfil: usuario.tipo,
       },
       process.env.ASSINATURA_TOKEN,
       { expiresIn: "8h" },
@@ -135,9 +136,9 @@ const login = async (req, res) => {
 const putUsuario = async (req, res) => {
   try {
     const idU = Number(req.params.id);
-    const { id, tipo: tipo_logado } = req.usuario;
+    const { id, perfil: perfil_logado } = req.usuario;
 
-    if (id !== idU && tipo_logado !== "ADMINISTRADOR") {
+    if (id !== idU && perfil_logado !== "ADMINISTRADOR") {
       return res.status(403).json({
         mensagem: "Sem permissão.",
       });
@@ -171,7 +172,7 @@ const putUsuario = async (req, res) => {
       aniversario,
       sobre,
       cargo,
-      tipo_logado,
+      perfil_logado,
     );
 
     if (!atualizado) {
@@ -185,7 +186,6 @@ const putUsuario = async (req, res) => {
     });
   } catch (erro) {
     console.log("Erro no update:", erro.message);
-
     return res.status(500).json({
       mensagem: "Erro interno ao atualizar usuário.",
     });
@@ -195,16 +195,7 @@ const putUsuario = async (req, res) => {
 const desativarUsuario = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
     const { id: idUsuario } = req.usuario;
-
-    const statusValidos = ["ativo", "desativado"];
-
-    if (!statusValidos.includes(status)) {
-      return res.status(400).json({
-        mensagem: "Status inválido.",
-      });
-    }
 
     if (Number(id) === Number(idUsuario)) {
       return res.status(403).json({
@@ -212,7 +203,7 @@ const desativarUsuario = async (req, res) => {
       });
     }
 
-    const usuarioExiste = await usuarioModel.getUsuarioPorId(id);
+    const usuarioExiste = await usuarioModel.getUsuarioID(id);
 
     if (!usuarioExiste) {
       return res.status(404).json({
@@ -220,7 +211,7 @@ const desativarUsuario = async (req, res) => {
       });
     }
 
-    const atualizado = await usuarioModel.alterarStatus(id, status);
+    const atualizado = await usuarioModel.alterarStatus(id);
 
     if (!atualizado) {
       return res.status(400).json({
@@ -245,5 +236,5 @@ export default {
   cadastro,
   login,
   putUsuario,
-  desativarUsuario
+  desativarUsuario,
 };

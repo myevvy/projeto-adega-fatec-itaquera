@@ -29,15 +29,6 @@ const getComprasFornecedor = async (idFornecedor) => {
   return rows;
 };
 
-// Usado pelo controller para checar duplicado (mesma data e mesmo total)
-const getCompra = async (data, total) => {
-  const [rows] = await db.query(
-    `${SELECT_BASE} WHERE c.data = ? AND c.valor_total = ? AND c.status <> 'CANCELADA' LIMIT 1`,
-    [soData(data), total],
-  );
-  return rows[0] || null;
-};
-
 // Compra + itens
 const getCompraID = async (id) => {
   const [rows] = await db.query(`${SELECT_BASE} WHERE c.id = ?`, [id]);
@@ -61,7 +52,7 @@ const getCompraID = async (id) => {
     itens: [{ produto (ou produto_id), quantidade, custo }]
   O usuário logado vem no 2º argumento (ou em dados.usuario_id).
 */
-const postCompra = async (dados, usuario_id = null) => {
+const postCompra = async (dados, usuario_id) => {
   const usuario = usuario_id ?? dados.usuario_id;
   const fornecedor_id = dados.fornecedor_id ?? dados.fornecedor;
 
@@ -234,7 +225,6 @@ const cancelarCompra = async (id, usuario_id = null) => {
 export default {
   getCompras,
   getComprasFornecedor,
-  getCompra,
   getCompraID,
   postCompra,
   cancelarCompra,

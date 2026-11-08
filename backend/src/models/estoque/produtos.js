@@ -128,7 +128,6 @@ const putProdutos = async (id, dados, usuario_id) => {
   }
 };
 
-
 const deleteProdutos = async (id, usuario_id) => {
   const [result] = await db.query(
     `UPDATE produto
@@ -180,6 +179,68 @@ const getHistoricoPreco = async (id) => {
   return rows;
 };
 
+const alterarQuantidade = async (id, dados, usuario_id) => {
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT quantidade_estoque
+         FROM produto
+        WHERE id = ? AND ativo = TRUE
+        FOR UPDATE`,
+      [id],
+    );
+
+    if (rows.length === 0) {
+      await conn.rollback();
+      return null;
+    }
+
+    const saldoAtual = Number(rows[0].quantidade_estoque);
+
+    const novoSaldo =
+      dados.tipo === "entrada"
+        ? saldoAtual + dados.quantidadeMovimentada
+        : dados.tipo === "saida"
+          ? saldoAtual - dados.quantidadeMovimentada
+          : dados.quantidade;
+
+    if (!Number.isSafeInteger(novoSaldo) || novoSaldo < 0) {
+      const erro = new Error(
+        dados.tipo === "saida"
+          ? "A saída não pode ser maior que a quantidade disponível."
+          : "A quantidade resultante excede o limite permitido.",
+      );
+      erro.code = "QUANTIDADE_INVALIDA";
+      throw erro;
+    }
+
+    await conn.query(
+      `UPDATE produto
+          SET quantidade_estoque = ?
+        WHERE id = ?`,
+      [novoSaldo, id],
+    );
+
+    await conn.query(
+      `INSERT INTO produto_usuario (produto_id, usuario_id)
+       VALUES (?, ?)`,
+      [id, usuario_id],
+    );
+
+    await conn.commit();
+
+    return novoSaldo;
+  } catch (erro) {
+    await conn.rollback();
+    throw erro;
+  } finally {
+    conn.release();
+  }
+};
+
 export default {
   getProdutos,
   postProdutos,
@@ -189,4 +250,5 @@ export default {
   getProdutosInativos,
   getEstoqueAlertas,
   getHistoricoPreco,
+  alterarQuantidade
 };
