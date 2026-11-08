@@ -6,25 +6,31 @@ import fornecedores from "./controllers/fornecedores.js";
 import compras from "./controllers/compra.js";
 import upload from "./middlewares/uploadProdutos.js";
 
-router.get('/usuarios', usuarios.getUsuarios);
-router.post('/cadastro', usuarios.cadastro);
-router.post('/login', usuarios.login);
-router.put('/usuarios/:id', usuarios.putUsuario);
-router.delete('/usuarios/:id', usuarios.desativarUsuario);
+router.get("/usuarios", usuarios.getUsuarios);
+router.post("/cadastro", usuarios.cadastro);
+router.post("/login", usuarios.login);
+router.put("/usuarios/:id", usuarios.putUsuario);
+router.delete("/usuarios/:id", usuarios.desativarUsuario);
 
-router.get('/fornecedores', fornecedores.getFornecedores);
-router.post('/fornecedores', fornecedores.postFornecedores);
-router.put('/fornecedores/:id', fornecedores.putFornecedor);
-router.delete('/fornecedores/:id', fornecedores.deleteFornecedor);
+router.get("/fornecedores", fornecedores.getFornecedores);
+router.get("/fornecedores/:nome", fornecedores.getFornecedores);
+router.post("/fornecedores", fornecedores.postFornecedores);
+router.put("/fornecedores/:id", fornecedores.putFornecedor);
+router.delete("/fornecedores/:id", fornecedores.deleteFornecedor);
 
-router.get('/compras', compras.getCompras);
-router.get('/compras', compras.getComprasFornecedor);
-router.post('/compras/:id', compras.postCompra);
-router.delete('/compras/:id', compras.cancelarCompra);
+router.get("/compras", compras.getCompras);
+router.get("/compras", compras.getComprasFornecedor);
+router.post("/compras/:id", compras.postCompra);
+router.delete("/compras/:id", compras.cancelarCompra);
 
-router.post(
-  "/produtos",
-  upload.single("imagem"),
-  produtos.postProdutos,
-);
+router.get("/produtos", produtos.getProdutos);
+router.get("/produtos/:filtro", produtos.getProdutos);
+router.get("/produtos", produtos.getProdutosInativos);
+router.get("/produtos", produtos.getHistoricoPreco);
+router.get("/produtos", produtos.getEstoqueAlertas);
+router.post("/produtos", upload.single("imagem"), produtos.postProdutos);
+router.put("/produtos", produtos.putProdutos);
+router.delete("/produtos", produtos.deleteProdutos);
+router.patch("/produtos", produtos.reativarProduto);
+
 export default router;

@@ -49,7 +49,6 @@ const putFornecedor = async (id, dados) => {
   return result.affectedRows;
 };
 
-
 const deleteFornecedor = async (id) => {
   const [result] = await db.query("UPDATE fornecedor SET ativo = FALSE WHERE id = ?", [id]);
   return result.affectedRows;

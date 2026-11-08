@@ -1,8 +1,9 @@
 import fornecedoresModels from "../models/estoque/fornecedores.js";
 
-const getFornecedores = async (_req, res) => {
+const getFornecedores = async (req, res) => {
   try {
-    const fornecedores = await fornecedoresModels.getFornecedores();
+    const { nome } = req.params;
+    const fornecedores = await fornecedoresModels.getFornecedores(nome);
 
     return res.status(200).json(fornecedores);
   } catch (erro) {
@@ -55,14 +56,20 @@ const putFornecedor = async (req, res) => {
     const fornecedor = await fornecedoresModels.getFornecedorID(idFornecedor);
 
     if (!fornecedor || !fornecedor.ativo) {
-      return res.status(404).json({
+      return res.status(400).json({
         mensagem: "Fornecedor não encontrado.",
       });
     }
 
     const dados = req.body;
 
-    await fornecedoresModels.putFornecedor(idFornecedor, dados);
+    const linhasAfetadas = await fornecedoresModels.putFornecedor(
+      idFornecedor,
+      dados,
+    );
+
+    if (!linhasAfetadas)
+      return res.status(404).json({ mensagem: "Nenhuma alteração feita." });
 
     return res.status(200).json({
       mensagem: "Fornecedor alterado com sucesso!",
@@ -89,7 +96,8 @@ const deleteFornecedor = async (req, res) => {
       });
     }
 
-    const linhasAfetadas = await fornecedoresModels.deleteFornecedor(idFornecedor);
+    const linhasAfetadas =
+      await fornecedoresModels.deleteFornecedor(idFornecedor);
 
     if (!linhasAfetadas) {
       return res.status(404).json({

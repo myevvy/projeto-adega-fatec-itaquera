@@ -1,8 +1,13 @@
 import produtosModels from "../models/estoque/produtos.js";
 
-const getProdutos = async (_req, res) => {
+const getProdutos = async (req, res) => {
   try {
-    const produtos = await produtosModels.getProdutos();
+    const { filtro } = req.params;
+    const produtos = await produtosModels.getProdutos(filtro);
+
+    if (produtos === null) {
+      return res.status(404).json({ mensagem: "Produto não encontrado." });
+    }
 
     return res.status(200).json(produtos);
   } catch (erro) {
@@ -76,8 +81,9 @@ const postProdutos = async (req, res) => {
 const putProdutos = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
+    const { id } = req.usuario;
 
-    const produto = await produtosModels.getProdutosID(idProduto);
+    const produto = await produtosModels.getProdutos(idProduto);
 
     if (!produto || !produto.ativo) {
       return res.status(404).json({
@@ -87,7 +93,7 @@ const putProdutos = async (req, res) => {
 
     const dados = req.body;
 
-    await produtosModels.putProdutos(idProduto, dados);
+    await produtosModels.putProdutos(idProduto, dados, id);
 
     return res.status(200).json({
       mensagem: "Produto alterado com sucesso!",
@@ -105,6 +111,7 @@ const putProdutos = async (req, res) => {
 const deleteProdutos = async (req, res) => {
   try {
     const { id: idProduto } = req.params;
+    const { id } = req.usuario;
 
     const produto = await produtosModels.getProdutosID(idProduto);
 
@@ -114,7 +121,7 @@ const deleteProdutos = async (req, res) => {
       });
     }
 
-    const linhasAfetadas = await produtosModels.deleteProdutos(idProduto);
+    const linhasAfetadas = await produtosModels.deleteProdutos(idProduto, id);
 
     if (!linhasAfetadas) {
       return res.status(404).json({
@@ -134,9 +141,91 @@ const deleteProdutos = async (req, res) => {
   }
 };
 
+const reativarProduto = async (req, res) => {
+  try {
+    const { id: idProduto } = req.params;
+
+    const produto = await produtosModels.getProdutosID(idProduto);
+
+    if (!produto) {
+      return res.status(404).json({
+        mensagem: "Produto não encontrado.",
+      });
+    }
+
+    const linhasAfetadas = await produtosModels.deleteProdutos(idProduto);
+
+    if (!linhasAfetadas) {
+      return res.status(404).json({
+        mensagem: "Erro ao reativar produto.",
+      });
+    }
+
+    return res.status(200).json({
+      mensagem: "Produto reativado com sucesso!",
+    });
+  } catch (erro) {
+    console.log("Erro no reativar produto:", erro.message);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao reativar produto.",
+    });
+  }
+};
+
+const getProdutosInativos = async (_req, res) => {
+  try {
+    const produtos = await produtosModels.getProdutosInativos();
+
+    return res.status(200).json(produtos);
+  } catch (erro) {
+    console.error("Erro ao buscar produtos inativos:", erro.message);
+
+    return res.status(500).json({
+      mensagem:
+        "Erro interno ao recuperar produtos inativos... Comunique-nos sobre o ocorrido",
+    });
+  }
+};
+
+const getHistoricoPreco = async (req, res) => {
+  try {
+    const { id: idProduto } = req.params;
+    const produtos = await produtosModels.getHistoricoPreco(idProduto);
+
+    return res.status(200).json(produtos);
+  } catch (erro) {
+    console.error("Erro ao buscar historico de preços:", erro.message);
+
+    return res.status(500).json({
+      mensagem:
+        "Erro interno ao recuperar histórico de preços... Comunique-nos sobre o ocorrido",
+    });
+  }
+};
+
+const getEstoqueAlertas = async (_req, res) => {
+  try {
+    const produtosA = await produtosModels.getEstoqueAlertas();
+
+    return res.status(200).json(produtosA);
+  } catch (erro) {
+    console.error("Erro ao buscar produtos em alerta:", erro.message);
+
+    return res.status(500).json({
+      mensagem:
+        "Erro interno ao recuperar produtos em alerta... Comunique-nos sobre o ocorrido",
+    });
+  }
+};
+
 export default {
   getProdutos,
   postProdutos,
   putProdutos,
   deleteProdutos,
+  reativarProduto,
+  getProdutosInativos,
+  getHistoricoPreco,
+  getEstoqueAlertas
 };

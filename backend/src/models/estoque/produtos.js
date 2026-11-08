@@ -26,7 +26,6 @@ const resolverCategoriaId = async (categoria) => {
   return rows[0].id;
 };
 
-
 const getProdutos = async (filtro) => {
   if (filtro === undefined) {
     const [rows] = await db.query(
@@ -65,7 +64,7 @@ const postProdutos = async ({
   return getProdutos(String(result.insertId));
 };
 
-const putProdutos = async (id, dados, usuario_id = null) => {
+const putProdutos = async (id, dados, usuario_id) => {
   const categoria_id =
     dados.categoria !== undefined
       ? await resolverCategoriaId(dados.categoria)
@@ -130,7 +129,7 @@ const putProdutos = async (id, dados, usuario_id = null) => {
 };
 
 
-const deleteProdutos = async (id, usuario_id = null) => {
+const deleteProdutos = async (id, usuario_id) => {
   const [result] = await db.query(
     `UPDATE produto
         SET ativo = FALSE, inativado_em = NOW(), inativado_por = ?
