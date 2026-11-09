@@ -17,18 +17,23 @@ function AdminSetupForm({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (password !== confirmPassword) {
+      setPasswordError('As senhas não coincidem.')
+      return
+    }
+
+    setPasswordError('')
+    onComplete()
+  }
+
   return (
     <form
       className="signup-step signup-step--admin"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (password !== confirmPassword) {
-          setPasswordError('As senhas não coincidem.')
-          return
-        }
-        setPasswordError('')
-        onComplete()
-        style={{
+      onSubmit={handleSubmit}
+      style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -37,13 +42,11 @@ function AdminSetupForm({
         padding: '24px',
         boxSizing: 'border-box',
       }}
-      }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* indicador de progresso */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ height: '8px', width: '8px', backgroundColor: '#e5e7eb', borderRadius: '9999px' }}></div>
-          <div style={{ height: '8px', width: '32px', backgroundColor: '#3d4d35', borderRadius: '9999px' }}></div>
+          <div style={{ height: '8px', width: '8px', backgroundColor: '#e5e7eb', borderRadius: '9999px' }} />
+          <div style={{ height: '8px', width: '32px', backgroundColor: '#3d4d35', borderRadius: '9999px' }} />
         </div>
 
         <div>
@@ -53,9 +56,7 @@ function AdminSetupForm({
           </h2>
           <p style={{ fontSize: '18px', color: '#6b7280' }}>Você poderá cadastrar outros usuários depois.</p>
         </div>
-      <p>Você poderá cadastrar outros usuários depois.</p>
-        
-      {/* campos de forms */}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <FormField
             id="admin-name"
@@ -83,9 +84,9 @@ function AdminSetupForm({
             name="password"
             type="password"
             autoComplete="new-password"
-            onChange={(value) => onChange('password', value)}
+            onChange={(value) => setPassword(value)}
             placeholder="Crie uma senha"
-            value={setupData.password || ''}
+            value={password}
           />
 
           <FormField
@@ -106,8 +107,7 @@ function AdminSetupForm({
           )}
         </div>
       </div>
-      
-       {/* botões rodapé */}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '24px' }}>
         <button
           type="submit"

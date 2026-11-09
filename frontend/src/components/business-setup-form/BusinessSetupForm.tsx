@@ -31,13 +31,11 @@ function BusinessSetupForm({
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* indicador de progresso */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ height: '8px', width: '32px', backgroundColor: '#3d4d35', borderRadius: '9999px' }}></div>
-          <div style={{ height: '8px', width: '8px', backgroundColor: '#e5e7eb', borderRadius: '9999px' }}></div>
+          <div style={{ height: '8px', width: '32px', backgroundColor: '#3d4d35', borderRadius: '9999px' }} />
+          <div style={{ height: '8px', width: '8px', backgroundColor: '#e5e7eb', borderRadius: '9999px' }} />
         </div>
 
-        {/* cabeçalho */}
         <div>
           <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>Etapa 1 de 2</span>
           <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginTop: '4px', marginBottom: '4px' }}>
@@ -46,7 +44,6 @@ function BusinessSetupForm({
           <p style={{ fontSize: '18px', color: '#6b7280' }}>Informe os dados do seu negócio.</p>
         </div>
 
-        {/* campos de forms */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <FormField
             id="business-name"
@@ -56,6 +53,7 @@ function BusinessSetupForm({
             placeholder="Ex: Adega Bom Sabor"
             value={setupData.businessName || ''}
           />
+
           <FormField
             id="category"
             label="Categoria"
@@ -64,8 +62,9 @@ function BusinessSetupForm({
             placeholder="Ex: Adega e distribuidora"
             value={setupData.category || ''}
           />
-          
-           {/* botões rodapé */}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '24px' }}>
         <button
           type="submit"
@@ -101,7 +100,8 @@ function BusinessSetupForm({
           >
             Entrar
           </button>
-      </p>
+        </p>
+      </div>
     </form>
   )
 }
