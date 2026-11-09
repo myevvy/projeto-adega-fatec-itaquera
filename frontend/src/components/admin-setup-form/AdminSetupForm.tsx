@@ -28,50 +28,104 @@ function AdminSetupForm({
         }
         setPasswordError('')
         onComplete()
+        style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        textAlign: 'left',
+        padding: '24px',
+        boxSizing: 'border-box',
+      }}
       }}
     >
-      <p aria-label="Etapa 2 de 2">○ ●</p>
-      <h2>Crie sua conta de administrador</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* indicador de progresso */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ height: '8px', width: '8px', backgroundColor: '#e5e7eb', borderRadius: '9999px' }}></div>
+          <div style={{ height: '8px', width: '32px', backgroundColor: '#3d4d35', borderRadius: '9999px' }}></div>
+        </div>
+
+        <div>
+          <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>Etapa 2 de 2</span>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginTop: '4px', marginBottom: '4px' }}>
+            Crie sua conta de administrador
+          </h2>
+          <p style={{ fontSize: '18px', color: '#6b7280' }}>Você poderá cadastrar outros usuários depois.</p>
+        </div>
       <p>Você poderá cadastrar outros usuários depois.</p>
-      <FormField
-        id="admin-name"
-        label="Seu nome"
-        name="adminName"
-        onChange={(value) => onChange('adminName', value)}
-        placeholder="Ex: Marcos Almeida"
-        value={setupData.adminName}
-      />
-      <FormField
-        id="admin-email"
-        label="E-mail"
-        name="email"
-        onChange={(value) => onChange('email', value)}
-        placeholder="seuemail@exemplo.com"
-        type="email"
-        value={setupData.email}
-      />
-      <FormField
-        autoComplete="new-password"
-        id="admin-password"
-        label="Senha"
-        name="password"
-        onChange={setPassword}
-        placeholder="Crie uma senha"
-        type="password"
-        value={password}
-      />
-      <FormField
-        autoComplete="new-password"
-        id="confirm-password"
-        label="Confirmar senha"
-        name="confirmPassword"
-        onChange={setConfirmPassword}
-        placeholder="Repita a senha"
-        type="password"
-        value={confirmPassword}
-      />
-      {passwordError && <p role="alert">{passwordError}</p>}
-      <button type="submit">Concluir cadastro</button>
+        
+      {/* campos de forms */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <FormField
+            id="admin-name"
+            label="Seu nome"
+            name="adminName"
+            onChange={(value) => onChange('adminName', value)}
+            placeholder="Ex: Marcos Almeida"
+            value={setupData.adminName || ''}
+          />
+
+          <FormField
+            id="admin-email"
+            label="E-mail"
+            name="email"
+            type="email"
+            autoComplete="email"
+            onChange={(value) => onChange('email', value)}
+            placeholder="seuemail@exemplo.com"
+            value={setupData.email || ''}
+          />
+
+          <FormField
+            id="admin-password"
+            label="Senha"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            onChange={(value) => onChange('password', value)}
+            placeholder="Crie uma senha"
+            value={setupData.password || ''}
+          />
+
+          <FormField
+            id="confirm-password"
+            label="Confirmar senha"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            onChange={(value) => setConfirmPassword(value)}
+            placeholder="Repita a senha"
+            value={confirmPassword}
+          />
+
+          {passwordError && (
+            <p role="alert" style={{ color: '#ef4444', fontSize: '12px', margin: 0 }}>
+              {passwordError}
+            </p>
+          )}
+        </div>
+      </div>
+      
+       {/* botões rodapé */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '24px' }}>
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            backgroundColor: '#3d4d35',
+            color: '#fff',
+            fontWeight: 500,
+            fontSize: '14px',
+            borderRadius: '16px',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Concluir cadastro
+        </button>
+      </div>
     </form>
   )
 }
