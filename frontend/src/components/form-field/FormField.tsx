@@ -34,6 +34,7 @@ function FormField({
         required={required}
         type={type}
         value={value}
+        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-[#1c1f1a] placeholder:text-gray-400 focus:border-[#3d4d35] focus:outline-none focus:ring-2 focus:ring-[#3d4d35]/20"
       />
     </p>
   )
