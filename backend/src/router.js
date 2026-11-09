@@ -8,6 +8,8 @@ import verificaAdm from "./middlewares/verificacoesUsuario.js";
 import autentica from "./middlewares/auth.js";
 import vendas from "./controllers/financeiro/vendas.js";
 import despesas from "./controllers/financeiro/despesa.js";
+import relatorios from "./controllers/financeiro/relatorios.js";
+import relatorioEstoque from "./controllers/estoque/relatorios.js";
 import upload from "./middlewares/uploadProdutos.js";
 
 router.get("/usuarios", usuarios.getUsuarios);
@@ -44,6 +46,25 @@ router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 router.get("/despesas", despesas.getDespesas);
 router.post("/despesas", autentica.autenticar, despesas.postDespesas);
 router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
+
+router.get(
+  "/relatorios/vendas",
+  autentica.autenticar,
+  verificaAdm,
+  relatorios.getRelatorioVendas,
+);
+router.get(
+  "/relatorios/estoque",
+  autentica.autenticar,
+  verificaAdm,
+  relatorioEstoque.getRelatorioEstoque,
+);
+router.get(
+  "/relatorios/despesas",
+  autentica.autenticar,
+  verificaAdm,
+  relatorios.getRelatorioDespesas,
+);
 
 router.get("/notificacoes", autentica.autenticar, getNotificacoes);
 router.get(
