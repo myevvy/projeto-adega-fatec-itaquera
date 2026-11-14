@@ -1,4 +1,12 @@
-import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import InventoryPage from '../pages/estoque/InventoryPage'
 import StockAdjustmentPage from '../pages/estoque/StockAdjustmentPage'
 import StockReportPage from '../pages/estoque/StockReportPage'
@@ -76,7 +84,33 @@ function AppRoutes({
   notifications,
 }: AppRoutesProps) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login, logout, session } = useAuth()
+  const publicPaths = ['/', '/cadastro', '/login', '/esqueci-senha']
+
+  if (!session && !publicPaths.includes(location.pathname)) {
+    return <Navigate replace state={{ from: location }} to="/login" />
+  }
+
   const navigateTo = (page: AppPath) => navigate(`/${page}`)
+  const handleLogin = async (email: string, password: string) => {
+    const authenticatedSession = await login(email, password)
+    onSetupDataChange({
+      ...setupData,
+      adminName: authenticatedSession.usuario.nome,
+      email: authenticatedSession.usuario.email,
+    })
+
+    const routeState = location.state as
+      | { from?: { pathname?: unknown } }
+      | null
+    const destination =
+      typeof routeState?.from?.pathname === 'string' &&
+      routeState.from.pathname.startsWith('/')
+        ? routeState.from.pathname
+        : '/dashboard'
+    navigate(destination, { replace: true })
+  }
   const saveProduct = (product: Product) =>
     onProductsChange((currentProducts) => {
       const exists = currentProducts.some((current) => current.id === product.id)
@@ -123,7 +157,7 @@ function AppRoutes({
         path="/login"
         element={
           <LoginPage
-            onLogin={() => navigateTo('dashboard')}
+            onLogin={handleLogin}
             onCreateAccount={() => navigateTo('cadastro')}
             onForgotPassword={() => navigateTo('esqueci-senha')}
           />
@@ -353,6 +387,7 @@ function AppRoutes({
         element={
           <ProfilePage
             notifications={notifications}
+            onLogout={logout}
             onNavigate={navigateTo}
             onNotificationsChange={onNotificationsChange}
             onSetupDataChange={onSetupDataChange}

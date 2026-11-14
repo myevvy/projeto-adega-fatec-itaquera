@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router-dom'
 import PwaInstallPrompt from './components/pwa-install-prompt/PwaInstallPrompt'
+import { AuthProvider } from './contexts/AuthProvider'
 import AppRoutes from './routes/AppRoutes'
 import useLocalStorage from './hooks/useLocalStorage'
 import type {
@@ -397,7 +398,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <>
+      <AuthProvider>
         <PwaInstallPrompt />
         <AppRoutes
           setupData={setupData}
@@ -419,7 +420,7 @@ function App() {
           notifications={notifications}
           onNotificationsChange={setNotifications}
         />
-      </>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

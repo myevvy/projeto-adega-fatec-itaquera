@@ -7,6 +7,7 @@ import type { NotificationPreferences, SetupData } from '../../types/usuario'
 
 type ProfilePageProps = {
   notifications: NotificationPreferences
+  onLogout: () => Promise<void>
   onNavigate: (path: AppPath) => void
   onNotificationsChange: (preferences: NotificationPreferences) => void
   onSetupDataChange: (data: SetupData) => void
@@ -23,6 +24,7 @@ const notificationLabels: { key: keyof NotificationPreferences; label: string }[
 
 function ProfilePage({
   notifications,
+  onLogout,
   onNavigate,
   onNotificationsChange,
   onSetupDataChange,
@@ -41,9 +43,18 @@ function ProfilePage({
     setMessage('Perfil salvo neste navegador.')
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setConfirmLogout(false)
-    navigate('/login')
+    try {
+      await onLogout()
+      navigate('/login')
+    } catch (logoutError) {
+      setMessage(
+        logoutError instanceof Error
+          ? `Não foi possível encerrar a sessão no servidor: ${logoutError.message}`
+          : 'Não foi possível encerrar a sessão no servidor.',
+      )
+    }
   }
 
   return (
@@ -129,13 +140,13 @@ function ProfilePage({
         </section>
         <section aria-labelledby="session-title">
           <h2 id="session-title">Sessão</h2>
-          <p>O login é apenas demonstrativo nesta versão e não valida credenciais.</p>
+          <p>A sessão é validada pelo backend e expira após oito horas.</p>
           <button onClick={() => setConfirmLogout(true)} type="button">Sair da conta</button>
         </section>
         {message && <p aria-live="polite" role="status">{message}</p>}
         {confirmLogout && (
           <ConfirmDialog
-            description="Você será direcionado para a tela de login demonstrativa. Nenhuma sessão de servidor será encerrada."
+            description="Sua sessão será encerrada no servidor e você voltará para a tela de login."
             onCancel={() => setConfirmLogout(false)}
             onConfirm={handleLogout}
             title="Sair da conta?"

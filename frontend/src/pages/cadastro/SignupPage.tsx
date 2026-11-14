@@ -3,66 +3,76 @@ import AuthLayout from '../../components/auth-layout/AuthLayout'
 import AdminSetupForm from '../../components/admin-setup-form/AdminSetupForm'
 import BusinessSetupForm from '../../components/business-setup-form/BusinessSetupForm'
 import SetupCompleteModal from '../../components/setup-complete-modal/SetupCompleteModal'
-import useLocalStorage from '../../hooks/useLocalStorage'
+import { useAuth } from '../../hooks/useAuth'
+import { register } from '../../services/authService'
 import type { SetupData } from '../../types'
 
 type SignupPageProps = {
-  onChange: (setupData: SetupData) => void
   onComplete: () => void
   onLogin: () => void
   setupData: SetupData
+  onChange: (setupData: SetupData) => void
 }
 
 function SignupPage({
-  onChange,
   onComplete,
   onLogin,
   setupData,
+  onChange,
 }: SignupPageProps) {
-  const [step, setStep] = useLocalStorage(
-    'adega.signup-step',
-    'business' as const,
-    (value): value is 'business' | 'admin' =>
-      value === 'business' || value === 'admin',
-  )
+  const [step, setStep] = useState<'business' | 'admin'>('business')
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
-  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const { login, session } = useAuth()
+
   const updateField = (field: keyof SetupData, value: string) => {
     onChange({ ...setupData, [field]: value })
   }
 
-  const handleGoToDashboard = () => {
+  const handleCreateAccount = async (password: string) => {
+    if (isSubmitting) return
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      await register({
+        nome: setupData.adminName,
+        email: setupData.email,
+        telefone: setupData.phone,
+        senha: password,
+      })
+    } catch (signupError) {
+      setError(
+        signupError instanceof Error
+          ? signupError.message
+          : 'Não foi possível concluir o cadastro.',
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!session) {
+      try {
+        await login(setupData.email, password)
+      } catch (loginError) {
+        setError(
+          `Cadastro concluído, mas não foi possível iniciar a sessão: ${
+            loginError instanceof Error
+              ? loginError.message
+              : 'erro desconhecido'
+          } Entre pela tela de login.`,
+        )
+        setIsSubmitting(false)
+        return
+      }
+    }
+
     setStep('business')
-    onComplete()
+    setIsSubmitting(false)
+    setIsCompleteModalOpen(true)
   }
 
-  if (isComplete) {
-    return (
-      <div className="flex min-h-screen flex-col justify-between bg-white px-4 pb-6 pt-10">
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#e9fbef]">
-            <svg
-              className="h-6 w-6 text-[#15803d]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              viewBox="0 0 24 24"
-            >
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-
-          <button
-          className="w-full cursor-pointer rounded-2xl bg-[#3d4d35] px-4 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[#33412c] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3d4d35] focus-visible:ring-offset-2"
-          onClick={handleGoToDashboard}
-          type="button"
-        >
-          Ir para o painel
-        </button>
-      </div>
-      
   return (
     <AuthLayout
       description={
@@ -81,13 +91,21 @@ function SignupPage({
         />
       ) : (
         <AdminSetupForm
+          error={error}
+          isSubmitting={isSubmitting}
           onChange={updateField}
-          onComplete={() => setIsCompleteModalOpen(true)}
+          onComplete={handleCreateAccount}
+          onLogin={onLogin}
           setupData={setupData}
         />
       )}
       {isCompleteModalOpen && (
-        <SetupCompleteModal onContinue={onComplete} />
+        <SetupCompleteModal
+          onContinue={() => {
+            setIsCompleteModalOpen(false)
+            onComplete()
+          }}
+        />
       )}
     </AuthLayout>
   )

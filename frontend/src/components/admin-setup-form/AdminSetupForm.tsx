@@ -4,13 +4,19 @@ import type { SetupData } from '../../types'
 
 type AdminSetupFormProps = {
   onChange: (field: keyof SetupData, value: string) => void
-  onComplete: () => void
+  onComplete: (password: string) => void
+  onLogin: () => void
+  error: string
+  isSubmitting: boolean
   setupData: SetupData
 }
 
 function AdminSetupForm({
   onChange,
   onComplete,
+  onLogin,
+  error,
+  isSubmitting,
   setupData,
 }: AdminSetupFormProps) {
   const [password, setPassword] = useState('')
@@ -26,7 +32,7 @@ function AdminSetupForm({
     }
 
     setPasswordError('')
-    onComplete()
+    onComplete(password)
   }
 
   return (
@@ -105,11 +111,17 @@ function AdminSetupForm({
               {passwordError}
             </p>
           )}
+          {error && (
+            <p role="alert" style={{ color: '#b91c1c', fontSize: '12px', margin: 0 }}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '24px' }}>
         <button
+          disabled={isSubmitting}
           type="submit"
           style={{
             width: '100%',
@@ -120,11 +132,29 @@ function AdminSetupForm({
             fontSize: '14px',
             borderRadius: '16px',
             border: 'none',
-            cursor: 'pointer',
+            cursor: isSubmitting ? 'wait' : 'pointer',
+            opacity: isSubmitting ? 0.7 : 1,
           }}
         >
-          Concluir cadastro
+          {isSubmitting ? 'Cadastrando...' : 'Concluir cadastro'}
         </button>
+        <p style={{ textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
+          Já tem uma conta?{' '}
+          <button
+            onClick={onLogin}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#3d4d35',
+              cursor: 'pointer',
+              padding: 0,
+              fontSize: 'inherit',
+            }}
+            type="button"
+          >
+            Entrar
+          </button>
+        </p>
       </div>
     </form>
   )
