@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   getTokenExpiration,
+  getTokenProfile,
   login as loginRequest,
   logout as logoutRequest,
   type AuthSession,
@@ -33,7 +34,8 @@ function readStoredSession(): AuthSession | null {
       typeof value.usuario.email === 'string'
     ) {
       const expiration = getTokenExpiration(value.token)
-      if (expiration && expiration > Date.now()) {
+      const perfil = getTokenProfile(value.token)
+      if (expiration && expiration > Date.now() && perfil) {
         return {
           token: value.token,
           usuario: {
@@ -41,6 +43,7 @@ function readStoredSession(): AuthSession | null {
             perfil_id: value.usuario.perfil_id,
             nome: value.usuario.nome,
             email: value.usuario.email,
+            perfil,
           },
         }
       }

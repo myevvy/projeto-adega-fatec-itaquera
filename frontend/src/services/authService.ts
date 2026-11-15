@@ -3,6 +3,7 @@ export type AuthUser = {
   perfil_id: number
   nome: string
   email: string
+  perfil: string
 }
 
 export type AuthSession = {
@@ -10,9 +11,14 @@ export type AuthSession = {
   usuario: AuthUser
 }
 
-type LoginResponse = {
-  token: string
-  usuario: AuthUser
+export type DirectoryUser = {
+  id: number
+  perfil_id: number
+  tipo: string
+  nome: string
+  email: string
+  telefone: string | null
+  ativo: boolean
 }
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(
@@ -25,7 +31,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-async function postJson(path: string, body: unknown, token?: string) {
+function getTokenPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded = JSON.parse(
+      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')),
+    )
+    return isRecord(decoded) ? decoded : null
+  } catch {
+    return null
+  }
+}
+
+export function getTokenExpiration(token: string): number | null {
+  const expiration = getTokenPayload(token)?.exp
+  return typeof expiration === 'number' ? expiration * 1000 : null
+}
+
+export function getTokenProfile(token: string): string | null {
+  const profile = getTokenPayload(token)?.perfil
+  return typeof profile === 'string' && profile.trim()
+    ? profile.trim().toUpperCase()
+    : null
+}
+
+async function requestJson(
+  path: string,
+  method: 'GET' | 'POST' | 'DELETE',
+  options: { body?: unknown; token?: string } = {},
+) {
   let response: Response
   let responseText: string
   const controller = new AbortController()
@@ -36,12 +73,18 @@ async function postJson(path: string, body: unknown, token?: string) {
 
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
-      method: 'POST',
+      method,
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.body === undefined
+          ? {}
+          : { 'Content-Type': 'application/json' }),
+        ...(options.token
+          ? { Authorization: `Bearer ${options.token}` }
+          : {}),
       },
-      body: JSON.stringify(body),
+      ...(options.body === undefined
+        ? {}
+        : { body: JSON.stringify(options.body) }),
       signal: controller.signal,
     })
     responseText = await response.text()
@@ -71,6 +114,11 @@ async function postJson(path: string, body: unknown, token?: string) {
   }
 
   if (!response.ok) {
+    if (path === '/usuarios' && method === 'POST' && response.status === 404) {
+      throw new Error(
+        'O backend ainda não disponibiliza a criação segura de colaboradores em /usuarios.',
+      )
+    }
     const message =
       isRecord(result) && typeof result.mensagem === 'string'
         ? result.mensagem
@@ -82,7 +130,9 @@ async function postJson(path: string, body: unknown, token?: string) {
 }
 
 export async function login(email: string, senha: string): Promise<AuthSession> {
-  const result = await postJson('/login', { email, senha })
+  const result = await requestJson('/login', 'POST', {
+    body: { email, senha },
+  })
 
   if (
     !isRecord(result) ||
@@ -91,50 +141,87 @@ export async function login(email: string, senha: string): Promise<AuthSession> 
     typeof result.usuario.id !== 'number' ||
     typeof result.usuario.perfil_id !== 'number' ||
     typeof result.usuario.nome !== 'string' ||
-    typeof result.usuario.email !== 'string'
+    typeof result.usuario.email !== 'string' ||
+    typeof result.token !== 'string'
   ) {
     throw new Error('A API retornou dados de login em um formato inesperado.')
   }
 
-  return result as LoginResponse
-}
-
-export async function register(input: {
-  nome: string
-  email: string
-  telefone: string
-  senha: string
-}) {
-  const perfilId = Number(import.meta.env.VITE_ADMIN_PERFIL_ID)
-
-  if (!Number.isInteger(perfilId) || perfilId <= 0) {
-    throw new Error(
-      'Configure VITE_ADMIN_PERFIL_ID com o ID do perfil de administrador antes de cadastrar.',
-    )
+  const perfil = getTokenProfile(result.token)
+  if (!perfil) {
+    throw new Error('O token de acesso não contém o perfil do usuário.')
   }
 
-  return postJson('/cadastro', {
-    perfil_id: perfilId,
-    nome: input.nome,
-    email: input.email,
-    telefone: input.telefone,
-    senha: input.senha,
+  return {
+    token: result.token,
+    usuario: {
+      id: result.usuario.id,
+      perfil_id: result.usuario.perfil_id,
+      nome: result.usuario.nome,
+      email: result.usuario.email,
+      perfil,
+    },
+  }
+}
+
+export async function listUsers(token: string): Promise<DirectoryUser[]> {
+  const result = await requestJson('/usuarios', 'GET', { token })
+  if (!Array.isArray(result)) {
+    throw new Error('A API retornou uma lista de usuários em formato inesperado.')
+  }
+
+  return result.map((value) => {
+    if (
+      !isRecord(value) ||
+      typeof value.id !== 'number' ||
+      typeof value.perfil_id !== 'number' ||
+      typeof value.tipo !== 'string' ||
+      typeof value.nome !== 'string' ||
+      typeof value.email !== 'string' ||
+      (typeof value.telefone !== 'string' && value.telefone !== null) ||
+      (typeof value.ativo !== 'boolean' &&
+        value.ativo !== 0 &&
+        value.ativo !== 1)
+    ) {
+      throw new Error('A API retornou um usuário em formato inesperado.')
+    }
+
+    return {
+      id: value.id,
+      perfil_id: value.perfil_id,
+      tipo: value.tipo,
+      nome: value.nome,
+      email: value.email,
+      telefone: value.telefone,
+      ativo: value.ativo === true || value.ativo === 1,
+    }
+  })
+}
+
+export async function createCollaborator(
+  token: string,
+  input: {
+    nome: string
+    email: string
+    telefone: string
+    senha: string
+  },
+) {
+  return requestJson('/usuarios', 'POST', {
+    token,
+    body: {
+      nome: input.nome,
+      email: input.email,
+      telefone: input.telefone,
+      senha: input.senha,
+    },
   })
 }
 
 export function logout(token: string) {
-  return postJson('/logout', {}, token)
+  return requestJson('/logout', 'POST', { body: {}, token })
 }
 
-export function getTokenExpiration(token: string): number | null {
-  try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const decoded = JSON.parse(atob(base64)) as { exp?: unknown }
-    return typeof decoded.exp === 'number' ? decoded.exp * 1000 : null
-  } catch {
-    return null
-  }
+export function deactivateUser(token: string, userId: number) {
+  return requestJson(`/usuarios/${userId}`, 'DELETE', { token })
 }

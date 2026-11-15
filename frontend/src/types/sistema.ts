@@ -1,4 +1,4 @@
-export type PageKey = 'cadastro' | 'login' | 'dashboard' | 'nova-venda'
+export type PageKey = 'login' | 'dashboard' | 'nova-venda'
 
 export type AppPath =
   | PageKey
@@ -26,6 +26,7 @@ export type AppPath =
   | `fornecedores/${string}`
   | `fornecedores/${string}/editar`
   | 'configuracoes'
+  | 'usuarios'
   | 'perfil'
 
 export type SalesPeriod = 'today' | '7' | '30' | '90' | '180' | '365' | 'all'

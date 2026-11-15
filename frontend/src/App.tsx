@@ -13,7 +13,6 @@ import type { PurchaseRecord } from './types/financeiro'
 import type { Supplier } from './types/fornecedor'
 import type {
   NotificationPreferences,
-  WorkspaceUser,
 } from './types/usuario'
 
 const initialSetupData: SetupData = {
@@ -145,23 +144,6 @@ const initialSuppliers: Supplier[] = [
   },
 ]
 
-const initialUsers: WorkspaceUser[] = [
-  {
-    id: 'operador-1',
-    name: 'Bianca Santos',
-    email: 'bianca@example.com',
-    role: 'Operador',
-    active: true,
-  },
-  {
-    id: 'operador-2',
-    name: 'Diego Oliveira',
-    email: 'diego@example.com',
-    role: 'Operador',
-    active: true,
-  },
-]
-
 const initialNotifications: NotificationPreferences = {
   lowStock: true,
   emptyStock: true,
@@ -286,18 +268,6 @@ function isSupplier(value: unknown): value is Supplier {
   )
 }
 
-function isWorkspaceUser(value: unknown): value is WorkspaceUser {
-  if (typeof value !== 'object' || value === null) return false
-  const user = value as Record<string, unknown>
-  return (
-    typeof user.id === 'string' &&
-    typeof user.name === 'string' &&
-    typeof user.email === 'string' &&
-    ['Administrador', 'Operador'].includes(String(user.role)) &&
-    typeof user.active === 'boolean'
-  )
-}
-
 function isNotificationPreferences(value: unknown): value is NotificationPreferences {
   if (typeof value !== 'object' || value === null) return false
   const preferences = value as Record<string, unknown>
@@ -341,12 +311,6 @@ function App() {
     initialSuppliers,
     (value): value is Supplier[] =>
       Array.isArray(value) && value.every(isSupplier),
-  )
-  const [users, setUsers] = useLocalStorage<WorkspaceUser[]>(
-    'adega.users',
-    initialUsers,
-    (value): value is WorkspaceUser[] =>
-      Array.isArray(value) && value.every(isWorkspaceUser),
   )
   const [notifications, setNotifications] = useLocalStorage<NotificationPreferences>(
     'adega.notifications',
@@ -415,8 +379,6 @@ function App() {
           }
           suppliers={suppliers}
           onSuppliersChange={setSuppliers}
-          users={users}
-          onUsersChange={setUsers}
           notifications={notifications}
           onNotificationsChange={setNotifications}
         />

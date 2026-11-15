@@ -11,7 +11,6 @@ import InventoryPage from '../pages/estoque/InventoryPage'
 import StockAdjustmentPage from '../pages/estoque/StockAdjustmentPage'
 import StockReportPage from '../pages/estoque/StockReportPage'
 import StockRestockPage from '../pages/estoque/StockRestockPage'
-import SignupPage from '../pages/cadastro/SignupPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import ExpenseFormPage from '../pages/financeiro/ExpenseFormPage'
 import ExpenseReportPage from '../pages/financeiro/ExpenseReportPage'
@@ -32,6 +31,7 @@ import ReportsPage from '../pages/relatorios/ReportsPage'
 import PurchasesPage from '../pages/compras/PurchasesPage'
 import PurchaseFormPage from '../pages/compras/PurchaseFormPage'
 import ForgotPasswordPage from '../pages/esqueci-senha/ForgotPasswordPage'
+import UsersPage from '../pages/usuarios/UsersPage'
 import type { Supplier } from '../types/fornecedor'
 import type { ExpenseRecord, PurchaseRecord, SaleRecord } from '../types/financeiro'
 import type { Product } from '../types/produto'
@@ -39,7 +39,6 @@ import type { AppPath } from '../types/sistema'
 import type {
   NotificationPreferences,
   SetupData,
-  WorkspaceUser,
 } from '../types/usuario'
 
 type AppRoutesProps = {
@@ -51,9 +50,6 @@ type AppRoutesProps = {
   onSuppliersChange: (
     suppliers: Supplier[] | ((currentSuppliers: Supplier[]) => Supplier[]),
   ) => void
-  onUsersChange: (
-    users: WorkspaceUser[] | ((currentUsers: WorkspaceUser[]) => WorkspaceUser[]),
-  ) => void
   onNotificationsChange: (preferences: NotificationPreferences) => void
   expenses: ExpenseRecord[]
   purchases: PurchaseRecord[]
@@ -61,7 +57,6 @@ type AppRoutesProps = {
   sales: SaleRecord[]
   setupData: SetupData
   suppliers: Supplier[]
-  users: WorkspaceUser[]
   notifications: NotificationPreferences
 }
 
@@ -72,7 +67,6 @@ function AppRoutes({
   onPurchaseCreated,
   onSetupDataChange,
   onSuppliersChange,
-  onUsersChange,
   onNotificationsChange,
   expenses,
   purchases,
@@ -80,18 +74,19 @@ function AppRoutes({
   sales,
   setupData,
   suppliers,
-  users,
   notifications,
 }: AppRoutesProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, logout, session } = useAuth()
-  const publicPaths = ['/', '/cadastro', '/login', '/esqueci-senha']
+  const publicPaths = ['/', '/login', '/esqueci-senha']
 
   if (!session && !publicPaths.includes(location.pathname)) {
     return <Navigate replace state={{ from: location }} to="/login" />
   }
 
+  const isAdministrator =
+    session?.usuario.perfil.trim().toUpperCase() === 'ADMINISTRADOR'
   const navigateTo = (page: AppPath) => navigate(`/${page}`)
   const handleLogin = async (email: string, password: string) => {
     const authenticatedSession = await login(email, password)
@@ -145,12 +140,7 @@ function AppRoutes({
       <Route
         path="/cadastro"
         element={
-          <SignupPage
-            setupData={setupData}
-            onChange={onSetupDataChange}
-            onLogin={() => navigateTo('login')}
-            onComplete={() => navigateTo('dashboard')}
-          />
+          <Navigate replace to={session ? '/dashboard' : '/login'} />
         }
       />
       <Route
@@ -158,7 +148,6 @@ function AppRoutes({
         element={
           <LoginPage
             onLogin={handleLogin}
-            onCreateAccount={() => navigateTo('cadastro')}
             onForgotPassword={() => navigateTo('esqueci-senha')}
           />
         }
@@ -373,13 +362,25 @@ function AppRoutes({
       <Route
         path="/configuracoes"
         element={
-          <SettingsPage
-            onNavigate={navigateTo}
-            onSetupDataChange={onSetupDataChange}
-            onUsersChange={onUsersChange}
-            setupData={setupData}
-            users={users}
-          />
+          isAdministrator ? (
+            <SettingsPage
+              onNavigate={navigateTo}
+              onSetupDataChange={onSetupDataChange}
+              setupData={setupData}
+            />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          isAdministrator ? (
+            <UsersPage onNavigate={navigateTo} />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
         }
       />
       <Route
@@ -421,8 +422,8 @@ function AppRoutes({
           />
         }
       />
-      <Route path="/" element={<Navigate replace to="/cadastro" />} />
-      <Route path="*" element={<Navigate replace to="/cadastro" />} />
+      <Route path="/" element={<Navigate replace to="/login" />} />
+      <Route path="*" element={<Navigate replace to="/dashboard" />} />
     </Routes>
   )
 }

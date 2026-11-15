@@ -3,12 +3,11 @@ import AuthLayout from '../../components/auth-layout/AuthLayout'
 import FormField from '../../components/form-field/FormField'
 
 type LoginPageProps = {
-  onCreateAccount: () => void
   onForgotPassword: () => void
   onLogin: (email: string, password: string) => Promise<void>
 }
 
-function LoginPage({ onCreateAccount, onForgotPassword, onLogin }: LoginPageProps) {
+function LoginPage({ onForgotPassword, onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -80,14 +79,7 @@ function LoginPage({ onCreateAccount, onForgotPassword, onLogin }: LoginPageProp
           {isSubmitting ? 'Entrando...' : 'Entrar'}
         </button>
         <p className="text-center text-sm text-gray-500">
-          Ainda não tem conta?{' '}
-          <button
-            className="cursor-pointer font-medium text-[#3d4d35] hover:underline"
-            onClick={onCreateAccount}
-            type="button"
-          >
-            Configurar uma adega
-          </button>
+          Acesso disponível para usuários cadastrados pelo administrador.
         </p>
       </form>
     </AuthLayout>
