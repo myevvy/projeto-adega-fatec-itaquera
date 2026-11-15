@@ -19,16 +19,17 @@ function SalesReportPage({
 }: SalesReportPageProps) {
   const [period, setPeriod] = useState<SalesPeriod>('7')
   const filteredSales = useMemo(() => {
-    if (period === 'all') return sales
+    const completedSales = sales.filter((sale) => sale.status !== 'CANCELADA')
+    if (period === 'all') return completedSales
     if (period === 'today') {
-      return sales.filter(
+      return completedSales.filter(
         (sale) =>
           new Date(sale.createdAt).toDateString() === new Date().toDateString(),
       )
     }
     const from = new Date()
     from.setDate(from.getDate() - Number(period))
-    return sales.filter((sale) => new Date(sale.createdAt) >= from)
+    return completedSales.filter((sale) => new Date(sale.createdAt) >= from)
   }, [period, sales])
   const total = filteredSales.reduce((sum, sale) => sum + sale.total, 0)
 
@@ -38,7 +39,9 @@ function SalesReportPage({
       ...filteredSales.map((sale) => [
         sale.id,
         new Date(sale.createdAt).toLocaleString('pt-BR'),
-        String(sale.items.reduce((count, item) => count + item.quantity, 0)),
+        sale.items.length
+          ? String(sale.items.reduce((count, item) => count + item.quantity, 0))
+          : 'Não informado',
         sale.paymentMethod,
         sale.total.toFixed(2),
       ]),
@@ -88,8 +91,10 @@ function SalesReportPage({
                   <div>
                     <strong>Venda #{sale.id.slice(-6)}</strong>
                     <p>
-                      {sale.items.reduce((count, item) => count + item.quantity, 0)}{' '}
-                      itens · {sale.paymentMethod} ·{' '}
+                      {sale.items.length
+                        ? `${sale.items.reduce((count, item) => count + item.quantity, 0)} itens`
+                        : 'Itens não detalhados pela API'}{' '}
+                      · {sale.paymentMethod} ·{' '}
                       {new Date(sale.createdAt).toLocaleDateString('pt-BR')}
                     </p>
                   </div>

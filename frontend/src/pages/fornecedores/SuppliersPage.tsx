@@ -15,7 +15,7 @@ function SuppliersPage({ onNavigate, setupData, suppliers }: SuppliersPageProps)
   const filteredSuppliers = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('pt-BR')
     return suppliers.filter((supplier) =>
-      `${supplier.name} ${supplier.cnpj} ${supplier.city}`
+      `${supplier.name} ${supplier.city}`
         .toLocaleLowerCase('pt-BR')
         .includes(query),
     )
@@ -41,7 +41,7 @@ function SuppliersPage({ onNavigate, setupData, suppliers }: SuppliersPageProps)
         <section aria-labelledby="supplier-list-title">
           <h2 id="supplier-list-title">Todos os fornecedores</h2>
           <label>
-            Buscar por nome, CNPJ ou cidade
+            Buscar por nome ou cidade
             <input
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Ex.: Vinícola"
@@ -59,7 +59,6 @@ function SuppliersPage({ onNavigate, setupData, suppliers }: SuppliersPageProps)
               <thead>
                 <tr>
                   <th scope="col">Fornecedor</th>
-                  <th scope="col">CNPJ</th>
                   <th scope="col">Telefone</th>
                   <th scope="col">Cidade</th>
                   <th scope="col">Status</th>
@@ -70,7 +69,6 @@ function SuppliersPage({ onNavigate, setupData, suppliers }: SuppliersPageProps)
                 {filteredSuppliers.map((supplier) => (
                   <tr key={supplier.id}>
                     <td>{supplier.name}</td>
-                    <td>{supplier.cnpj || '—'}</td>
                     <td>{supplier.phone}</td>
                     <td>{[supplier.city, supplier.state].filter(Boolean).join(' / ') || '—'}</td>
                     <td>{supplier.active ? 'Ativo' : 'Inativo'}</td>

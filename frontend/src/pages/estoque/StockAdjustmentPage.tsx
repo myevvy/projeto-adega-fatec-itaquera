@@ -6,7 +6,7 @@ import type { AppPath, Product, SetupData } from '../../types'
 
 type StockAdjustmentPageProps = {
   onNavigate: (path: AppPath) => void
-  onUpdate: (product: Product) => void
+  onUpdate: (product: Product) => Promise<void>
   products: Product[]
   setupData: SetupData
 }
@@ -25,6 +25,8 @@ function StockAdjustmentPage({
   const [reason, setReason] = useState('')
   const [observation, setObservation] = useState('')
   const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
   const selectedProduct = products.find(
     (product) => product.id === Number(productId) && product.active,
   )
@@ -33,13 +35,25 @@ function StockAdjustmentPage({
     ? parsedQuantity - selectedProduct.stock
     : 0
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selectedProduct || !Number.isInteger(parsedQuantity) || parsedQuantity < 0) {
       return
     }
-    onUpdate({ ...selectedProduct, stock: parsedQuantity })
-    setSaved(true)
+    setError('')
+    setIsSaving(true)
+    try {
+      await onUpdate({ ...selectedProduct, stock: parsedQuantity })
+      setSaved(true)
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível registrar o ajuste de estoque.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -133,10 +147,11 @@ function StockAdjustmentPage({
               value={observation}
             />
           </label>
-          <button disabled={!selectedProduct} type="submit">
-            Confirmar ajuste
+          <button disabled={!selectedProduct || isSaving} type="submit">
+            {isSaving ? 'Salvando...' : 'Confirmar ajuste'}
           </button>
         </form>
+        {error && <p role="alert">{error}</p>}
         {saved && selectedProduct && (
           <StatusToast
             message={`${selectedProduct.name}: estoque atualizado para ${parsedQuantity} un. Motivo: ${reason}.${observation ? ` ${observation}` : ''}`}

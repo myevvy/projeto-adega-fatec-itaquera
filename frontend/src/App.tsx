@@ -23,127 +23,6 @@ const initialSetupData: SetupData = {
   email: '',
 }
 
-const initialProducts: Product[] = [
-  { id: 1, name: 'Vinho Tinto Reserva', category: 'Tintos', variety: 'Cabernet Sauvignon', price: 48, cost: 27, stock: 24, minimumStock: 8, description: 'Vinho encorpado com notas de frutas vermelhas.', active: true },
-  { id: 2, name: 'Vinho Branco Seco', category: 'Brancos', variety: 'Sauvignon Blanc', price: 39.9, cost: 22, stock: 6, minimumStock: 10, description: 'Branco leve, ideal para harmonizar com frutos do mar.', active: true },
-  { id: 3, name: 'Espumante Brut', category: 'Espumantes', variety: 'Método tradicional', price: 65, cost: 38, stock: 15, minimumStock: 6, description: 'Espumante brut para celebrações.', active: true },
-  { id: 4, name: 'Vinho Tinto Suave', category: 'Tintos', variety: 'Bordô', price: 29.9, cost: 16, stock: 3, minimumStock: 12, description: 'Vinho suave e frutado.', active: true },
-  { id: 5, name: 'Whisky 12 anos', category: 'Destilados', variety: 'Single Malt', price: 189.9, cost: 125, stock: 9, minimumStock: 4, description: 'Whisky envelhecido por 12 anos.', active: true },
-  { id: 6, name: 'Vinho Rosé', category: 'Rosés', variety: 'Rosé seco', price: 42, cost: 25, stock: 0, minimumStock: 8, description: 'Vinho rosé refrescante.', active: true },
-]
-
-const initialPurchases: PurchaseRecord[] = [
-  {
-    id: 'compra-demo-1',
-    supplierId: 'fornecedor-1',
-    supplierName: 'Vinícola Vale do Sol',
-    productId: 1,
-    productName: 'Vinho Tinto Reserva',
-    quantity: 12,
-    unitCost: 40,
-    date: '2026-11-05',
-    total: 480,
-  },
-  {
-    id: 'compra-demo-2',
-    supplierId: 'fornecedor-2',
-    supplierName: 'Adega Serra Alta',
-    productId: 3,
-    productName: 'Espumante Brut',
-    quantity: 24,
-    unitCost: 30,
-    date: '2026-11-02',
-    total: 720,
-  },
-  {
-    id: 'compra-demo-3',
-    supplierId: 'fornecedor-3',
-    supplierName: 'Importadora Monte Bello',
-    productId: 5,
-    productName: 'Whisky 12 anos',
-    quantity: 6,
-    unitCost: 190,
-    date: '2026-10-28',
-    total: 1140,
-  },
-]
-
-const initialSuppliers: Supplier[] = [
-  {
-    id: 'fornecedor-1',
-    name: 'Vinícola Vale do Sol',
-    legalName: 'Vale do Sol Vinhos Ltda.',
-    cnpj: '12.345.678/0001-90',
-    phone: '(11) 3456-7890',
-    email: 'contato@valedosol.example',
-    address: 'Rua das Videiras, 120',
-    city: 'São Roque',
-    state: 'SP',
-    description: 'Distribuidora demonstrativa de vinhos nacionais.',
-    active: true,
-    purchases: [
-      { id: 'compra-demo-1', date: '2025-03-12', itemCount: 24, total: 1860 },
-      { id: 'compra-demo-2', date: '2025-02-20', itemCount: 12, total: 940 },
-    ],
-  },
-  {
-    id: 'fornecedor-2',
-    name: 'Adega Serra Alta',
-    legalName: 'Serra Alta Distribuidora de Bebidas Ltda.',
-    cnpj: '23.456.789/0001-01',
-    phone: '(11) 2345-6789',
-    email: 'vendas@serraalta.example',
-    address: 'Avenida Central, 450',
-    city: 'Jundiaí',
-    state: 'SP',
-    description: 'Fornecedor demonstrativo.',
-    active: true,
-    purchases: [],
-  },
-  {
-    id: 'fornecedor-3',
-    name: 'Importadora Monte Bello',
-    legalName: 'Monte Bello Importações Ltda.',
-    cnpj: '34.567.890/0001-12',
-    phone: '(19) 3234-5678',
-    email: 'atendimento@montebello.example',
-    address: 'Rua do Comércio, 85',
-    city: 'Campinas',
-    state: 'SP',
-    description: 'Fornecedor demonstrativo.',
-    active: true,
-    purchases: [],
-  },
-  {
-    id: 'fornecedor-4',
-    name: 'Destilaria Horizonte',
-    legalName: 'Horizonte Bebidas Artesanais Ltda.',
-    cnpj: '45.678.901/0001-23',
-    phone: '(11) 4567-8901',
-    email: 'comercial@horizonte.example',
-    address: 'Estrada do Engenho, 30',
-    city: 'Atibaia',
-    state: 'SP',
-    description: 'Fornecedor demonstrativo.',
-    active: true,
-    purchases: [],
-  },
-  {
-    id: 'fornecedor-5',
-    name: 'Distribuidora Bom Gosto',
-    legalName: 'Bom Gosto Comércio de Bebidas Ltda.',
-    cnpj: '56.789.012/0001-34',
-    phone: '(11) 5678-9012',
-    email: 'pedidos@bomgosto.example',
-    address: 'Rua dos Armazéns, 210',
-    city: 'São Paulo',
-    state: 'SP',
-    description: 'Fornecedor demonstrativo.',
-    active: false,
-    purchases: [],
-  },
-]
-
 const initialNotifications: NotificationPreferences = {
   lowStock: true,
   emptyStock: true,
@@ -171,7 +50,9 @@ function isSaleRecord(value: unknown): value is SaleRecord {
     typeof sale.createdAt === 'string' &&
     typeof sale.total === 'number' &&
     Number.isFinite(sale.total) &&
-    ['Dinheiro', 'PIX', 'Cartão'].includes(String(sale.paymentMethod)) &&
+    ['Dinheiro', 'PIX', 'Cartão', 'Não informado'].includes(
+      String(sale.paymentMethod),
+    ) &&
     Array.isArray(sale.items) &&
     sale.items.every(
       (item: unknown) =>
@@ -208,9 +89,9 @@ function isExpenseRecord(value: unknown): value is ExpenseRecord {
   return (
     typeof expense.id === 'string' &&
     typeof expense.description === 'string' &&
-    ['Fixa (contas, aluguel)', 'Compras de fornecedores', 'Outras despesas'].includes(
-      String(expense.category),
-    ) &&
+    typeof expense.category === 'string' &&
+    (expense.categoryId === undefined ||
+      typeof expense.categoryId === 'number') &&
     typeof expense.amount === 'number' &&
     Number.isFinite(expense.amount) &&
     typeof expense.paidAt === 'string' &&
@@ -229,7 +110,8 @@ function isPurchaseRecord(value: unknown): value is PurchaseRecord {
     typeof purchase.productName === 'string' &&
     typeof purchase.quantity === 'number' &&
     Number.isInteger(purchase.quantity) &&
-    purchase.quantity > 0 &&
+    purchase.quantity >= 0 &&
+    purchase.productId >= 0 &&
     typeof purchase.unitCost === 'number' &&
     Number.isFinite(purchase.unitCost) &&
     purchase.unitCost >= 0 &&
@@ -283,32 +165,32 @@ function App() {
     isSetupData,
   )
   const [sales, setSales] = useLocalStorage<SaleRecord[]>(
-    'adega.sales',
+    'adega.db.sales',
     [],
     (value): value is SaleRecord[] =>
       Array.isArray(value) && value.every(isSaleRecord),
   )
   const [products, setProducts] = useLocalStorage<Product[]>(
-    'adega.products',
-    initialProducts,
+    'adega.db.products',
+    [],
     (value): value is Product[] =>
       Array.isArray(value) && value.every(isProduct),
   )
   const [expenses, setExpenses] = useLocalStorage<ExpenseRecord[]>(
-    'adega.expenses',
+    'adega.db.expenses',
     [],
     (value): value is ExpenseRecord[] =>
       Array.isArray(value) && value.every(isExpenseRecord),
   )
   const [purchases, setPurchases] = useLocalStorage<PurchaseRecord[]>(
-    'adega.purchases',
-    initialPurchases,
+    'adega.db.purchases',
+    [],
     (value): value is PurchaseRecord[] =>
       Array.isArray(value) && value.every(isPurchaseRecord),
   )
   const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>(
-    'adega.suppliers',
-    initialSuppliers,
+    'adega.db.suppliers',
+    [],
     (value): value is Supplier[] =>
       Array.isArray(value) && value.every(isSupplier),
   )
@@ -319,45 +201,9 @@ function App() {
   )
   const saveSale = (sale: SaleRecord) => {
     setSales((currentSales) => [sale, ...currentSales])
-    setProducts((currentProducts) =>
-      currentProducts.map((product) => {
-        const soldQuantity =
-          sale.items.find((item) => item.productId === product.id)?.quantity ?? 0
-        return { ...product, stock: Math.max(0, product.stock - soldQuantity) }
-      }),
-    )
   }
   const savePurchase = (purchase: PurchaseRecord) => {
     setPurchases((currentPurchases) => [purchase, ...currentPurchases])
-    setProducts((currentProducts) =>
-      currentProducts.map((product) =>
-        product.id === purchase.productId
-          ? {
-              ...product,
-              stock: product.stock + purchase.quantity,
-              cost: purchase.unitCost,
-            }
-          : product,
-      ),
-    )
-    setSuppliers((currentSuppliers) =>
-      currentSuppliers.map((supplier) =>
-        supplier.id === purchase.supplierId
-          ? {
-              ...supplier,
-              purchases: [
-                {
-                  id: purchase.id,
-                  date: purchase.date,
-                  itemCount: purchase.quantity,
-                  total: purchase.total,
-                },
-                ...supplier.purchases,
-              ],
-            }
-          : supplier,
-      ),
-    )
   }
 
   return (
@@ -370,6 +216,9 @@ function App() {
           sales={sales}
           products={products}
           onProductsChange={setProducts}
+          onSalesChange={setSales}
+          onPurchasesChange={setPurchases}
+          onExpensesChange={setExpenses}
           onSaleCreated={saveSale}
           purchases={purchases}
           onPurchaseCreated={savePurchase}

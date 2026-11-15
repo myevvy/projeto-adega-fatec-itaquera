@@ -38,12 +38,18 @@ function FinancePage({
 }: FinancePageProps) {
   const [period, setPeriod] = useState<SalesPeriod>('today')
   const filteredSales = useMemo(
-    () => sales.filter((sale) => isWithinPeriod(new Date(sale.createdAt), period)),
+    () =>
+      sales.filter(
+        (sale) =>
+          sale.status !== 'CANCELADA' &&
+          isWithinPeriod(new Date(sale.createdAt), period),
+      ),
     [period, sales],
   )
   const filteredExpenses = useMemo(
     () =>
       expenses.filter((expense) =>
+        expense.active !== false &&
         isWithinPeriod(new Date(`${expense.paidAt}T12:00:00`), period),
       ),
     [expenses, period],
@@ -57,11 +63,7 @@ function FinancePage({
   const averageTicket = filteredSales.length
     ? revenue / filteredSales.length
     : 0
-  const expenseGroups = [
-    'Fixa (contas, aluguel)',
-    'Compras de fornecedores',
-    'Outras despesas',
-  ] as const
+  const expenseGroups = [...new Set(filteredExpenses.map((expense) => expense.category))]
   const categories = expenseGroups.map((category) => {
     const amount = filteredExpenses
       .filter((expense) => expense.category === category)

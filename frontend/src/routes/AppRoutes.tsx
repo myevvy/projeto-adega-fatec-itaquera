@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   Navigate,
   Route,
@@ -7,6 +8,27 @@ import {
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import {
+  adjustProductStock,
+  cancelExpense,
+  cancelPurchase,
+  cancelSale,
+  createExpense,
+  createProduct,
+  createPurchase,
+  createSale,
+  deactivateProduct,
+  deactivateSupplier,
+  getExpenseCategoryId,
+  listExpenses,
+  listProducts,
+  listPurchases,
+  listSales,
+  listSuppliers,
+  saveSupplier as saveSupplierRequest,
+  supplierPurchasesFromRecords,
+  updateProduct as updateProductRequest,
+} from '../services/businessDataService'
 import InventoryPage from '../pages/estoque/InventoryPage'
 import StockAdjustmentPage from '../pages/estoque/StockAdjustmentPage'
 import StockReportPage from '../pages/estoque/StockReportPage'
@@ -43,6 +65,9 @@ import type {
 
 type AppRoutesProps = {
   onProductsChange: (products: Product[] | ((currentProducts: Product[]) => Product[])) => void
+  onSalesChange: (sales: SaleRecord[]) => void
+  onPurchasesChange: (purchases: PurchaseRecord[]) => void
+  onExpensesChange: (expenses: ExpenseRecord[]) => void
   onExpenseCreated: (expense: ExpenseRecord) => void
   onSaleCreated: (sale: SaleRecord) => void
   onPurchaseCreated: (purchase: PurchaseRecord) => void
@@ -62,6 +87,9 @@ type AppRoutesProps = {
 
 function AppRoutes({
   onProductsChange,
+  onSalesChange,
+  onPurchasesChange,
+  onExpensesChange,
   onExpenseCreated,
   onSaleCreated,
   onPurchaseCreated,
@@ -79,7 +107,87 @@ function AppRoutes({
   const navigate = useNavigate()
   const location = useLocation()
   const { login, logout, session } = useAuth()
+  const [dataLoadError, setDataLoadError] = useState('')
   const publicPaths = ['/', '/login', '/esqueci-senha']
+
+  useEffect(() => {
+    let active = true
+    if (!session) {
+      onProductsChange([])
+      onSalesChange([])
+      onPurchasesChange([])
+      onExpensesChange([])
+      onSuppliersChange([])
+      return () => {
+        active = false
+      }
+    }
+
+    onProductsChange([])
+    onSalesChange([])
+    onPurchasesChange([])
+    onExpensesChange([])
+    onSuppliersChange([])
+    const loadData = async () => {
+      const results = await Promise.allSettled([
+        listProducts(session.token),
+        listSales(session.token),
+        listPurchases(session.token),
+        listExpenses(session.token),
+        listSuppliers(session.token),
+      ])
+      if (!active) return
+
+      const errors: string[] = []
+      const [productsResult, salesResult, purchasesResult, expensesResult, suppliersResult] =
+        results
+      if (productsResult.status === 'fulfilled') {
+        onProductsChange(productsResult.value)
+      } else {
+        errors.push(`produtos: ${productsResult.reason instanceof Error ? productsResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (salesResult.status === 'fulfilled') {
+        onSalesChange(salesResult.value)
+      } else {
+        errors.push(`vendas: ${salesResult.reason instanceof Error ? salesResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (purchasesResult.status === 'fulfilled') {
+        onPurchasesChange(purchasesResult.value)
+      } else {
+        errors.push(`compras: ${purchasesResult.reason instanceof Error ? purchasesResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (expensesResult.status === 'fulfilled') {
+        onExpensesChange(expensesResult.value)
+      } else {
+        errors.push(`despesas: ${expensesResult.reason instanceof Error ? expensesResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (suppliersResult.status === 'fulfilled') {
+        const purchasesBySupplier = supplierPurchasesFromRecords(
+          purchasesResult.status === 'fulfilled' ? purchasesResult.value : [],
+        )
+        onSuppliersChange(
+          suppliersResult.value.map((supplier) => ({
+            ...supplier,
+            purchases: purchasesBySupplier.get(supplier.id) ?? [],
+          })),
+        )
+      } else {
+        errors.push(`fornecedores: ${suppliersResult.reason instanceof Error ? suppliersResult.reason.message : 'falha ao carregar'}`)
+      }
+      setDataLoadError(errors.join(' · '))
+    }
+    void loadData()
+    return () => {
+      active = false
+    }
+  }, [
+    session,
+    onProductsChange,
+    onSalesChange,
+    onPurchasesChange,
+    onExpensesChange,
+    onSuppliersChange,
+  ])
 
   if (!session && !publicPaths.includes(location.pathname)) {
     return <Navigate replace state={{ from: location }} to="/login" />
@@ -106,36 +214,186 @@ function AppRoutes({
         : '/dashboard'
     navigate(destination, { replace: true })
   }
-  const saveProduct = (product: Product) =>
-    onProductsChange((currentProducts) => {
-      const exists = currentProducts.some((current) => current.id === product.id)
-      return exists
-        ? currentProducts.map((current) =>
-            current.id === product.id ? product : current,
-          )
-        : [...currentProducts, product]
-    })
-  const updateProduct = (product: Product) =>
+  const refreshProducts = async () => {
+    if (!session) return
+    try {
+      onProductsChange(await listProducts(session.token))
+    } catch (error) {
+      setDataLoadError(
+        `produto salvo, mas a atualização do estoque falhou: ${
+          error instanceof Error ? error.message : 'erro desconhecido'
+        }`,
+      )
+    }
+  }
+  const saveProduct = async (product: Product, image?: File) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const existing = products.some((current) => current.id === product.id)
+    if (existing) {
+      await updateProductRequest(session.token, product)
+      onProductsChange((currentProducts) =>
+        currentProducts.map((current) =>
+          current.id === product.id ? product : current,
+        ),
+      )
+    } else {
+      const created = await createProduct(session.token, product, image)
+      onProductsChange((currentProducts) => [...currentProducts, created])
+    }
+  }
+  const updateProduct = async (product: Product) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const current = products.find((item) => item.id === product.id)
+    if (current?.active && !product.active) {
+      await deactivateProduct(session.token, product.id)
+      onProductsChange((currentProducts) =>
+        currentProducts.filter((currentProduct) => currentProduct.id !== product.id),
+      )
+      return
+    } else if (current && current.stock !== product.stock) {
+      await adjustProductStock(session.token, product.id, product.stock)
+    } else {
+      await updateProductRequest(session.token, product)
+    }
     onProductsChange((currentProducts) =>
-      currentProducts.map((current) =>
-        current.id === product.id ? product : current,
+      currentProducts.map((currentProduct) =>
+        currentProduct.id === product.id ? product : currentProduct,
       ),
     )
+  }
+  const saveSale = async (sale: SaleRecord) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const created = await createSale(session.token, sale)
+    onSaleCreated(created)
+    await refreshProducts()
+  }
+  const savePurchase = async (purchase: PurchaseRecord) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const created = await createPurchase(session.token, purchase)
+    onPurchaseCreated(created)
+    await refreshProducts()
+    onSuppliersChange((currentSuppliers) =>
+      currentSuppliers.map((supplier) =>
+        supplier.id === created.supplierId
+          ? {
+              ...supplier,
+              purchases: [
+                {
+                  id: created.id,
+                  date: created.date,
+                  itemCount: created.quantity,
+                  total: created.total,
+                },
+                ...supplier.purchases,
+              ],
+            }
+          : supplier,
+      ),
+    )
+  }
+  const saveExpense = async (expense: ExpenseRecord) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const categoryId = getExpenseCategoryId(expenses, expense.category)
+    if (!categoryId) {
+      throw new Error(
+        'O backend não disponibiliza a lista de categorias. Não é possível identificar o ID desta categoria para salvar a despesa.',
+      )
+    }
+    const created = await createExpense(session.token, expense, categoryId)
+    onExpenseCreated(created)
+  }
+  const handleCancelSale = async (saleId: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await cancelSale(session.token, saleId)
+    try {
+      onSalesChange(await listSales(session.token))
+    } catch (error) {
+      setDataLoadError(
+        `venda cancelada, mas o histórico não atualizou: ${
+          error instanceof Error ? error.message : 'erro desconhecido'
+        }`,
+      )
+    }
+    await refreshProducts()
+  }
+  const handleCancelPurchase = async (purchaseId: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await cancelPurchase(session.token, purchaseId)
+    try {
+      onPurchasesChange(await listPurchases(session.token))
+    } catch (error) {
+      setDataLoadError(
+        `compra cancelada, mas o histórico não atualizou: ${
+          error instanceof Error ? error.message : 'erro desconhecido'
+        }`,
+      )
+    }
+    await refreshProducts()
+  }
+  const handleCancelExpense = async (expenseId: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await cancelExpense(session.token, expenseId)
+    try {
+      onExpensesChange(await listExpenses(session.token))
+    } catch (error) {
+      setDataLoadError(
+        `despesa estornada, mas o histórico não atualizou: ${
+          error instanceof Error ? error.message : 'erro desconhecido'
+        }`,
+      )
+    }
+  }
   const productById = (id: string) =>
     products.find((product) => product.id === Number(id))
   const supplierById = (id: string) =>
     suppliers.find((supplier) => supplier.id === id)
-  const saveSupplier = (supplier: Supplier) =>
-    onSuppliersChange((currentSuppliers) => {
-      const exists = currentSuppliers.some((current) => current.id === supplier.id)
-      return exists
-        ? currentSuppliers.map((current) =>
-            current.id === supplier.id ? supplier : current,
-          )
-        : [...currentSuppliers, supplier]
-    })
+  const saveSupplier = async (supplier: Supplier): Promise<Supplier> => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const isNew = !suppliers.some((current) => current.id === supplier.id)
+    const saved = await saveSupplierRequest(session.token, supplier, isNew)
+    onSuppliersChange((currentSuppliers) =>
+      isNew
+        ? [...currentSuppliers, saved]
+        : currentSuppliers.map((current) =>
+            current.id === saved.id ? saved : current,
+          ),
+    )
+    return saved
+  }
+  const deleteSupplier = async (supplierId: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await deactivateSupplier(session.token, supplierId)
+    onSuppliersChange((currentSuppliers) =>
+      currentSuppliers.filter((supplier) => supplier.id !== supplierId),
+    )
+  }
+  const expenseCategories = expenses.reduce<{ id: number; name: string }[]>(
+    (categories, expense) => {
+      if (
+        typeof expense.categoryId === 'number' &&
+        !categories.some((category) => category.id === expense.categoryId)
+      ) {
+        categories.push({
+          id: expense.categoryId,
+          name: expense.category,
+        })
+      }
+      return categories
+    },
+    [],
+  )
 
   return (
+    <>
+    {session && dataLoadError && (
+      <p
+        aria-live="polite"
+        className="fixed inset-x-4 top-4 z-50 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow"
+        role="alert"
+      >
+        Alguns dados não puderam ser sincronizados com o backend: {dataLoadError}
+      </p>
+    )}
     <Routes>
       <Route
         path="/cadastro"
@@ -160,6 +418,8 @@ function AppRoutes({
         path="/dashboard"
         element={
           <DashboardPage
+            expenses={expenses}
+            products={products}
             setupData={setupData}
             sales={sales}
             onNavigate={navigateTo}
@@ -181,8 +441,9 @@ function AppRoutes({
         path="/financeiro/despesas/nova"
         element={
           <ExpenseFormPage
+            categories={expenseCategories}
             onNavigate={navigateTo}
-            onSave={onExpenseCreated}
+            onSave={saveExpense}
             setupData={setupData}
           />
         }
@@ -192,6 +453,7 @@ function AppRoutes({
         element={
           <ExpenseReportPage
             expenses={expenses}
+            onCancelExpense={handleCancelExpense}
             onNavigate={navigateTo}
             setupData={setupData}
           />
@@ -202,6 +464,7 @@ function AppRoutes({
         element={
           <SalesHistoryPage
             onNavigate={navigateTo}
+            onCancelSale={handleCancelSale}
             sales={sales}
             setupData={setupData}
           />
@@ -223,7 +486,7 @@ function AppRoutes({
           <SalePage
             setupData={setupData}
             onNavigate={navigateTo}
-            onSaleCreated={onSaleCreated}
+            onSaleCreated={saveSale}
             products={products}
           />
         }
@@ -254,8 +517,9 @@ function AppRoutes({
         element={
           <StockRestockPage
             onNavigate={navigateTo}
-            onUpdate={updateProduct}
+            onSavePurchase={savePurchase}
             products={products}
+            suppliers={suppliers}
             setupData={setupData}
           />
         }
@@ -347,13 +611,8 @@ function AppRoutes({
         path="/fornecedores/:supplierId"
         element={
           <SupplierDetailRoute
-            onDelete={(supplierId) =>
-              onSuppliersChange((currentSuppliers) =>
-                currentSuppliers.filter((supplier) => supplier.id !== supplierId),
-              )
-            }
+            onDelete={deleteSupplier}
             onNavigate={navigateTo}
-            onUpdate={saveSupplier}
             setupData={setupData}
             supplierById={supplierById}
           />
@@ -405,6 +664,7 @@ function AppRoutes({
         element={
           <PurchasesPage
             onNavigate={navigateTo}
+            onCancelPurchase={handleCancelPurchase}
             purchases={purchases}
             setupData={setupData}
           />
@@ -415,7 +675,7 @@ function AppRoutes({
         element={
           <PurchaseFormPage
             onNavigate={navigateTo}
-            onSave={onPurchaseCreated}
+            onSave={savePurchase}
             products={products}
             setupData={setupData}
             suppliers={suppliers}
@@ -425,14 +685,14 @@ function AppRoutes({
       <Route path="/" element={<Navigate replace to="/login" />} />
       <Route path="*" element={<Navigate replace to="/dashboard" />} />
     </Routes>
+    </>
   )
 }
 
 type SupplierRouteProps = {
-  onDelete?: (supplierId: string) => void
+  onDelete?: (supplierId: string) => Promise<void>
   onNavigate: (path: AppPath) => void
-  onSave?: (supplier: Supplier) => void
-  onUpdate?: (supplier: Supplier) => void
+  onSave?: (supplier: Supplier) => Promise<Supplier>
   setupData: SetupData
   supplierById: (id: string) => Supplier | undefined
 }
@@ -459,20 +719,18 @@ function SupplierEditRoute({
 function SupplierDetailRoute({
   onDelete,
   onNavigate,
-  onUpdate,
   setupData,
   supplierById,
 }: SupplierRouteProps) {
   const { supplierId } = useParams()
   const supplier = supplierId ? supplierById(supplierId) : undefined
-  if (!supplier || !onDelete || !onUpdate) {
+  if (!supplier || !onDelete) {
     return <Navigate replace to="/fornecedores" />
   }
   return (
     <SupplierDetailPage
       onDelete={onDelete}
       onNavigate={onNavigate}
-      onUpdate={onUpdate}
       setupData={setupData}
       supplier={supplier}
     />
@@ -481,8 +739,8 @@ function SupplierDetailRoute({
 
 type ProductRouteProps = {
   onNavigate: (path: AppPath) => void
-  onSave?: (product: Product) => void
-  onUpdate?: (product: Product) => void
+  onSave?: (product: Product, image?: File) => Promise<void>
+  onUpdate?: (product: Product) => Promise<void>
   productById: (id: string) => Product | undefined
   setupData: SetupData
 }

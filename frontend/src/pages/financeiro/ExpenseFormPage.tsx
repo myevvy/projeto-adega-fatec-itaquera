@@ -1,44 +1,56 @@
 import { useState, type FormEvent } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import StatusToast from '../../components/status-toast/StatusToast'
-import type { AppPath, ExpenseCategory, ExpenseRecord, SetupData } from '../../types'
+import type { AppPath, ExpenseRecord, SetupData } from '../../types'
 
 type ExpenseFormPageProps = {
+  categories: { id: number; name: string }[]
   onNavigate: (path: AppPath) => void
-  onSave: (expense: ExpenseRecord) => void
+  onSave: (expense: ExpenseRecord) => Promise<void>
   setupData: SetupData
 }
 
-const categories: ExpenseCategory[] = [
-  'Fixa (contas, aluguel)',
-  'Compras de fornecedores',
-  'Outras despesas',
-]
-
-function ExpenseFormPage({ onNavigate, onSave, setupData }: ExpenseFormPageProps) {
+function ExpenseFormPage({
+  categories,
+  onNavigate,
+  onSave,
+  setupData,
+}: ExpenseFormPageProps) {
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState<ExpenseCategory>(categories[0])
+  const [category, setCategory] = useState('')
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
-  const [observation, setObservation] = useState('')
   const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const numericAmount = Number(amount)
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) return
-    onSave({
-      id: crypto.randomUUID(),
-      description: description.trim(),
-      category,
-      amount: numericAmount,
-      paidAt,
-      observation: observation.trim(),
-    })
-    setSaved(true)
-    setAmount('')
-    setDescription('')
-    setObservation('')
+    setError('')
+    setIsSaving(true)
+    try {
+      await onSave({
+        id: crypto.randomUUID(),
+        description: description.trim(),
+        category,
+        amount: numericAmount,
+        paidAt,
+        observation: '',
+      })
+      setSaved(true)
+      setAmount('')
+      setDescription('')
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível registrar a despesa.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -82,18 +94,24 @@ function ExpenseFormPage({ onNavigate, onSave, setupData }: ExpenseFormPageProps
           <label>
             Categoria
             <select
-              onChange={(event) =>
-                setCategory(event.target.value as ExpenseCategory)
-              }
+              onChange={(event) => setCategory(event.target.value)}
+              required
               value={category}
             >
+              <option value="">Selecione uma categoria</option>
               {categories.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+                <option key={option.id} value={option.name}>
+                  {option.name}
                 </option>
               ))}
             </select>
           </label>
+          {categories.length === 0 && (
+            <p role="status">
+              Não há categorias disponíveis na resposta do backend para registrar
+              uma despesa.
+            </p>
+          )}
           <label>
             Data do Pagamento
             <input
@@ -103,16 +121,11 @@ function ExpenseFormPage({ onNavigate, onSave, setupData }: ExpenseFormPageProps
               value={paidAt}
             />
           </label>
-          <label>
-            Observações (opcional)
-            <textarea
-              onChange={(event) => setObservation(event.target.value)}
-              placeholder="Toque para adicionar mais detalhes..."
-              value={observation}
-            />
-          </label>
-          <button type="submit">Registrar despesa</button>
+          <button disabled={isSaving || categories.length === 0} type="submit">
+            {isSaving ? 'Registrando...' : 'Registrar despesa'}
+          </button>
         </form>
+        {error && <p role="alert">{error}</p>}
         {saved && (
           <StatusToast
             message="A despesa foi salva no financeiro local."

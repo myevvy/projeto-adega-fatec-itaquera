@@ -6,9 +6,8 @@ import type { AppPath } from '../../types/sistema'
 import type { SetupData } from '../../types/usuario'
 
 type SupplierDetailPageProps = {
-  onDelete: (supplierId: string) => void
+  onDelete: (supplierId: string) => Promise<void>
   onNavigate: (path: AppPath) => void
-  onUpdate: (supplier: Supplier) => void
   setupData: SetupData
   supplier: Supplier
 }
@@ -19,12 +18,30 @@ const formatCurrency = (value: number) =>
 function SupplierDetailPage({
   onDelete,
   onNavigate,
-  onUpdate,
   setupData,
   supplier,
 }: SupplierDetailPageProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState('')
   const purchasesTotal = supplier.purchases.reduce((total, purchase) => total + purchase.total, 0)
+  const handleDeactivate = async () => {
+    setError('')
+    setIsDeleting(true)
+    try {
+      await onDelete(supplier.id)
+      setConfirmDelete(false)
+      onNavigate('fornecedores')
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Não foi possível desativar o fornecedor.',
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <div>
@@ -48,20 +65,17 @@ function SupplierDetailPage({
             Editar fornecedor
           </button>
           <button
-            onClick={() => onUpdate({ ...supplier, active: !supplier.active })}
+            disabled={!supplier.active}
+            onClick={() => setConfirmDelete(true)}
             type="button"
           >
-            {supplier.active ? 'Desativar' : 'Ativar'} fornecedor
-          </button>
-          <button onClick={() => setConfirmDelete(true)} type="button">
-            Excluir fornecedor
+            Desativar fornecedor
           </button>
         </header>
+        {error && <p role="alert">{error}</p>}
         <section aria-labelledby="supplier-data-title">
           <h2 id="supplier-data-title">Dados cadastrais</h2>
           <dl>
-            <dt>Razão social</dt><dd>{supplier.legalName || '—'}</dd>
-            <dt>CNPJ</dt><dd>{supplier.cnpj || '—'}</dd>
             <dt>Telefone</dt><dd>{supplier.phone}</dd>
             <dt>E-mail</dt><dd>{supplier.email || '—'}</dd>
             <dt>Endereço</dt><dd>{supplier.address || '—'}</dd>
@@ -71,7 +85,7 @@ function SupplierDetailPage({
           </dl>
         </section>
         <section aria-labelledby="purchase-history-title">
-          <h2 id="purchase-history-title">Histórico de compras demonstrativo</h2>
+          <h2 id="purchase-history-title">Histórico de compras</h2>
           <p>Total de compras registradas: {supplier.purchases.length}</p>
           <p>Total movimentado: {formatCurrency(purchasesTotal)}</p>
           {supplier.purchases.length === 0 ? (
@@ -85,7 +99,7 @@ function SupplierDetailPage({
                 {supplier.purchases.map((purchase) => (
                   <tr key={purchase.id}>
                     <td>{new Date(`${purchase.date}T12:00:00`).toLocaleDateString('pt-BR')}</td>
-                    <td>{purchase.itemCount}</td>
+                    <td>{purchase.itemCount || 'Não informado'}</td>
                     <td>{formatCurrency(purchase.total)}</td>
                   </tr>
                 ))}
@@ -95,10 +109,10 @@ function SupplierDetailPage({
         </section>
         {confirmDelete && (
           <ConfirmDialog
-            description="Esta ação remove o fornecedor dos dados salvos neste navegador."
+            description="Esta ação desativa o fornecedor no banco de dados."
             onCancel={() => setConfirmDelete(false)}
-            onConfirm={() => onDelete(supplier.id)}
-            title="Excluir fornecedor?"
+            onConfirm={() => void handleDeactivate()}
+            title={isDeleting ? 'Desativando fornecedor...' : 'Desativar fornecedor?'}
           />
         )}
       </main>

@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import type { AppPath, SaleRecord, SetupData } from '../../types'
+import type { ExpenseRecord } from '../../types/financeiro'
+import type { Product } from '../../types/produto'
 
 type DashboardPageProps = {
   onNavigate: (page: AppPath) => void
+  expenses: ExpenseRecord[]
+  products: Product[]
   sales: SaleRecord[]
   setupData: SetupData
 }
@@ -11,13 +15,36 @@ type DashboardPageProps = {
 const formatCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-function DashboardPage({ onNavigate, sales, setupData }: DashboardPageProps) {
+function DashboardPage({
+  onNavigate,
+  expenses,
+  products,
+  sales,
+  setupData,
+}: DashboardPageProps) {
   const [search, setSearch] = useState('')
   const todaySales = sales.filter(
     (sale) =>
+      sale.status !== 'CANCELADA' &&
       new Date(sale.createdAt).toDateString() === new Date().toDateString(),
   )
+  const completedSales = sales.filter((sale) => sale.status !== 'CANCELADA')
   const revenueToday = todaySales.reduce((sum, sale) => sum + sale.total, 0)
+  const expensesToday = expenses.filter(
+    (expense) =>
+      expense.active !== false &&
+      new Date(`${expense.paidAt}T12:00:00`).toDateString() ===
+        new Date().toDateString(),
+  )
+  const expensesTotal = expensesToday.reduce(
+    (sum, expense) => sum + expense.amount,
+    0,
+  )
+  const activeProducts = products.filter((product) => product.active)
+  const outOfStock = activeProducts.filter((product) => product.stock === 0)
+  const lowStock = activeProducts.filter(
+    (product) => product.stock > 0 && product.stock <= product.minimumStock,
+  )
 
   return (
     <main>
@@ -54,14 +81,14 @@ function DashboardPage({ onNavigate, sales, setupData }: DashboardPageProps) {
           <h2 id="daily-summary">Resumo de hoje</h2>
           <p>Faturamento: {formatCurrency(revenueToday)}</p>
           <p>Vendas hoje: {todaySales.length}</p>
-          <p>Despesas: —</p>
-          <p>Lucro bruto: —</p>
+          <p>Despesas: {formatCurrency(expensesTotal)}</p>
+          <p>Lucro bruto: {formatCurrency(revenueToday - expensesTotal)}</p>
         </section>
         <section aria-labelledby="stock-alerts">
           <h2 id="stock-alerts">Atenção ao estoque</h2>
           <ul>
-            <li>1 produto zerado</li>
-            <li>3 produtos com estoque baixo</li>
+            <li>{outOfStock.length} produtos zerados</li>
+            <li>{lowStock.length} produtos com estoque baixo</li>
           </ul>
         </section>
         <section aria-labelledby="recent-sales">
@@ -69,14 +96,16 @@ function DashboardPage({ onNavigate, sales, setupData }: DashboardPageProps) {
           <button onClick={() => onNavigate('vendas')} type="button">
             Ver tudo
           </button>
-          {sales.length > 0 ? (
+          {completedSales.length > 0 ? (
             <ul>
-              {sales.slice(0, 3).map((sale, index) => (
+              {completedSales.slice(0, 3).map((sale, index) => (
                 <li key={sale.id}>
-                  <strong>Venda #{sales.length - index}</strong>
+                  <strong>Venda #{completedSales.length - index}</strong>
                   <p>
-                    {sale.items.reduce((count, item) => count + item.quantity, 0)}{' '}
-                    itens · {sale.paymentMethod}
+                    {sale.items.length
+                      ? `${sale.items.reduce((count, item) => count + item.quantity, 0)} itens`
+                      : 'Itens não detalhados'}{' '}
+                    · {sale.paymentMethod}
                   </p>
                   <p>
                     {formatCurrency(sale.total)} ·{' '}

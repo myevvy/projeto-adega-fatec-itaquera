@@ -39,10 +39,12 @@ export type ExpenseCategory =
 export type ExpenseRecord = {
   id: string
   description: string
-  category: ExpenseCategory
+  category: string
+  categoryId?: number
   amount: number
   paidAt: string
   observation: string
+  active?: boolean
 }
 
 export type SetupData = {
@@ -64,8 +66,9 @@ export type SaleRecord = {
     quantity: number
     unitPrice: number
   }[]
-  paymentMethod: PaymentMethod
+  paymentMethod: PaymentMethod | 'Não informado'
   total: number
+  status?: string
 }
 
 export type Product = {

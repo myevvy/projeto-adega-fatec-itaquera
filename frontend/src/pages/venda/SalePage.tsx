@@ -4,7 +4,7 @@ import type { AppPath, PaymentMethod, Product, SaleRecord, SetupData } from '../
 
 type NewSalePageProps = {
   onNavigate: (page: AppPath) => void
-  onSaleCreated: (sale: SaleRecord) => void
+  onSaleCreated: (sale: SaleRecord) => Promise<void>
   products: Product[]
   setupData: SetupData
 }
@@ -18,6 +18,8 @@ function NewSalePage({ onNavigate, onSaleCreated, products, setupData }: NewSale
   const [quantities, setQuantities] = useState<Record<number, number>>({})
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('')
   const [confirmation, setConfirmation] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const visibleProducts = useMemo(
     () =>
@@ -60,26 +62,38 @@ function NewSalePage({ onNavigate, onSaleCreated, products, setupData }: NewSale
     })
   }
 
-  const confirmSale = () => {
+  const confirmSale = async () => {
     if (!paymentMethod || saleItems.length === 0) {
       return
     }
 
-    onSaleCreated({
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      items: saleItems.map((product) => ({
-        productId: product.id,
-        name: product.name,
-        quantity: quantities[product.id],
-        unitPrice: product.price,
-      })),
-      paymentMethod,
-      total,
-    })
-    setConfirmation(`Venda registrada: ${formatCurrency(total)} via ${paymentMethod}.`)
-    setQuantities({})
-    setPaymentMethod('')
+    setError('')
+    setIsSaving(true)
+    try {
+      await onSaleCreated({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        items: saleItems.map((product) => ({
+          productId: product.id,
+          name: product.name,
+          quantity: quantities[product.id],
+          unitPrice: product.price,
+        })),
+        paymentMethod,
+        total,
+      })
+      setConfirmation(`Venda registrada: ${formatCurrency(total)} via ${paymentMethod}.`)
+      setQuantities({})
+      setPaymentMethod('')
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível registrar a venda.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -184,12 +198,13 @@ function NewSalePage({ onNavigate, onSaleCreated, products, setupData }: NewSale
             ))}
           </fieldset>
           <button
-            disabled={itemCount === 0 || !paymentMethod}
-            onClick={confirmSale}
+            disabled={isSaving || itemCount === 0 || !paymentMethod}
+            onClick={() => void confirmSale()}
             type="button"
           >
-            Confirmar venda · {formatCurrency(total)}
+            {isSaving ? 'Registrando venda...' : `Confirmar venda · ${formatCurrency(total)}`}
           </button>
+          {error && <p role="alert">{error}</p>}
           {confirmation && <p role="status">{confirmation}</p>}
         </aside>
       </section>

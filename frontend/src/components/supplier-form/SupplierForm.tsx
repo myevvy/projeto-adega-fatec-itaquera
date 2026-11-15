@@ -3,11 +3,13 @@ import type { Supplier } from '../../types/fornecedor'
 
 type SupplierFormProps = {
   onCancel: () => void
-  onSave: (supplier: Supplier) => void
+  onSave: (supplier: Supplier) => Promise<Supplier>
   supplier?: Supplier
 }
 
 function SupplierForm({ onCancel, onSave, supplier }: SupplierFormProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: supplier?.name ?? '',
     legalName: supplier?.legalName ?? '',
@@ -23,19 +25,31 @@ function SupplierForm({ onCancel, onSave, supplier }: SupplierFormProps) {
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSave({
+    setError('')
+    setIsSaving(true)
+    try {
+      await onSave({
       ...form,
       id: supplier?.id ?? crypto.randomUUID(),
       active: supplier?.active ?? true,
       purchases: supplier?.purchases ?? [],
-    })
+      })
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível salvar o fornecedor.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <p>Os dados serão salvos apenas neste navegador.</p>
+      <p>Os dados são salvos no banco de dados.</p>
       <label>
         Nome fantasia *
         <input
@@ -43,20 +57,6 @@ function SupplierForm({ onCancel, onSave, supplier }: SupplierFormProps) {
           onChange={(event) => updateField('name', event.target.value)}
           required
           value={form.name}
-        />
-      </label>
-      <label>
-        Razão social
-        <input
-          onChange={(event) => updateField('legalName', event.target.value)}
-          value={form.legalName}
-        />
-      </label>
-      <label>
-        CNPJ
-        <input
-          onChange={(event) => updateField('cnpj', event.target.value)}
-          value={form.cnpj}
         />
       </label>
       <label>
@@ -108,8 +108,15 @@ function SupplierForm({ onCancel, onSave, supplier }: SupplierFormProps) {
           value={form.description}
         />
       </label>
-      <button type="submit">{supplier ? 'Salvar alterações' : 'Cadastrar fornecedor'}</button>
+      <button disabled={isSaving} type="submit">
+        {isSaving
+          ? 'Salvando...'
+          : supplier
+            ? 'Salvar alterações'
+            : 'Cadastrar fornecedor'}
+      </button>
       <button onClick={onCancel} type="button">Cancelar</button>
+      {error && <p role="alert">{error}</p>}
     </form>
   )
 }

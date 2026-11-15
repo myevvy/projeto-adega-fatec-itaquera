@@ -2,21 +2,24 @@ import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import StatusToast from '../../components/status-toast/StatusToast'
-import type { AppPath, Product, SetupData } from '../../types'
+import type { AppPath, SetupData } from '../../types'
+import type { PurchaseRecord } from '../../types/financeiro'
+import type { Product } from '../../types/produto'
+import type { Supplier } from '../../types/fornecedor'
 
 type StockRestockPageProps = {
   onNavigate: (path: AppPath) => void
-  onUpdate: (product: Product) => void
+  onSavePurchase: (purchase: PurchaseRecord) => Promise<void>
   products: Product[]
+  suppliers: Supplier[]
   setupData: SetupData
 }
 
-const suppliers = ['Distribuidora Central', 'Adega Atacado', 'Fornecedor local']
-
 function StockRestockPage({
   onNavigate,
-  onUpdate,
+  onSavePurchase,
   products,
+  suppliers,
   setupData,
 }: StockRestockPageProps) {
   const [searchParams] = useSearchParams()
@@ -27,31 +30,58 @@ function StockRestockPage({
     new Date().toISOString().slice(0, 10),
   )
   const [unitCost, setUnitCost] = useState('')
-  const [observation, setObservation] = useState('')
   const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
   const selectedProduct = products.find(
     (product) => product.id === Number(productId) && product.active,
+  )
+  const selectedSupplier = suppliers.find(
+    (item) => item.id === supplier && item.active,
   )
   const restockQuantity = Number(quantity)
   const resultingStock = (selectedProduct?.stock ?? 0) + restockQuantity
   const reachesMinimum =
     !!selectedProduct && resultingStock >= selectedProduct.minimumStock
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (
       !selectedProduct ||
+      !selectedSupplier ||
       !Number.isInteger(restockQuantity) ||
-      restockQuantity <= 0
+      restockQuantity <= 0 ||
+      unitCost === '' ||
+      !Number.isFinite(Number(unitCost)) ||
+      Number(unitCost) < 0
     ) {
       return
     }
-    onUpdate({
-      ...selectedProduct,
-      stock: resultingStock,
-      cost: unitCost === '' ? selectedProduct.cost : Number(unitCost),
-    })
-    setSaved(true)
+    setError('')
+    setIsSaving(true)
+    const cost = Number(unitCost)
+    try {
+      await onSavePurchase({
+        id: crypto.randomUUID(),
+        supplierId: selectedSupplier.id,
+        supplierName: selectedSupplier.name,
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        quantity: restockQuantity,
+        unitCost: cost,
+        date: entryDate,
+        total: restockQuantity * cost,
+      })
+      setSaved(true)
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível registrar a entrada de estoque.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -145,12 +175,13 @@ function StockRestockPage({
             Fornecedor
             <select
               onChange={(event) => setSupplier(event.target.value)}
+              required
               value={supplier}
             >
               <option value="">Selecionar fornecedor</option>
-              {suppliers.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              {suppliers.filter((option) => option.active).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
                 </option>
               ))}
             </select>
@@ -165,31 +196,28 @@ function StockRestockPage({
             />
           </label>
           <label>
-            Custo unitário (opcional)
+            Custo unitário
             <input
               min="0"
               onChange={(event) => setUnitCost(event.target.value)}
               placeholder="R$ 0,00"
+              required
               step="0.01"
               type="number"
               value={unitCost}
             />
           </label>
-          <label>
-            Observação (opcional)
-            <textarea
-              onChange={(event) => setObservation(event.target.value)}
-              placeholder="Adicione uma nota sobre esta reposição"
-              value={observation}
-            />
-          </label>
-          <button disabled={!selectedProduct || restockQuantity < 1} type="submit">
-            Confirmar reposição
+          <button
+            disabled={!selectedProduct || !selectedSupplier || restockQuantity < 1 || isSaving}
+            type="submit"
+          >
+            {isSaving ? 'Registrando entrada...' : 'Confirmar reposição'}
           </button>
         </form>
+        {error && <p role="alert">{error}</p>}
         {saved && selectedProduct && (
           <StatusToast
-            message={`${restockQuantity} unidades de ${selectedProduct.name} adicionadas em ${entryDate}.${supplier ? ` Fornecedor: ${supplier}.` : ''}${observation ? ` ${observation}` : ''}`}
+            message={`${restockQuantity} unidades de ${selectedProduct.name} adicionadas em ${entryDate} pelo fornecedor ${selectedSupplier?.name}.`}
             onClose={() => setSaved(false)}
             title="Reposição confirmada com sucesso!"
           />

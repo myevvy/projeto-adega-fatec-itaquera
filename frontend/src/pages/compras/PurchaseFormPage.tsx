@@ -9,7 +9,7 @@ import type { SetupData } from '../../types/usuario'
 
 type PurchaseFormPageProps = {
   onNavigate: (path: AppPath) => void
-  onSave: (purchase: PurchaseRecord) => void
+  onSave: (purchase: PurchaseRecord) => Promise<void>
   products: Product[]
   setupData: SetupData
   suppliers: Supplier[]
@@ -28,12 +28,14 @@ function PurchaseFormPage({
   const [unitCost, setUnitCost] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
   const selectedProduct = products.find(
     (product) => product.id === Number(productId) && product.active,
   )
   const total = Number(quantity) * Number(unitCost)
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const supplier = suppliers.find((item) => item.id === supplierId && item.active)
     if (
@@ -47,7 +49,10 @@ function PurchaseFormPage({
       return
     }
 
-    onSave({
+    setError('')
+    setIsSaving(true)
+    try {
+      await onSave({
       id: crypto.randomUUID(),
       supplierId: supplier.id,
       supplierName: supplier.name,
@@ -57,12 +62,21 @@ function PurchaseFormPage({
       unitCost: Number(unitCost),
       date,
       total,
-    })
-    setSaved(true)
-    setSupplierId('')
-    setProductId('')
-    setQuantity('')
-    setUnitCost('')
+      })
+      setSaved(true)
+      setSupplierId('')
+      setProductId('')
+      setQuantity('')
+      setUnitCost('')
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível registrar a compra.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -71,7 +85,7 @@ function PurchaseFormPage({
       <section>
         <button onClick={() => onNavigate('compras')} type="button">← Voltar para compras</button>
         <h1>Registrar compra</h1>
-        <p>A compra e a atualização do estoque serão salvas localmente.</p>
+        <p>A compra será registrada no banco e atualizará o estoque.</p>
         <form onSubmit={submit}>
           <label>
             Fornecedor
@@ -133,12 +147,13 @@ function PurchaseFormPage({
             <p>Total da compra: <strong>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></p>
           )}
           <button
-            disabled={!supplierId || !selectedProduct || Number(quantity) <= 0 || !unitCost}
+            disabled={isSaving || !supplierId || !selectedProduct || Number(quantity) <= 0 || !unitCost}
             type="submit"
           >
-            Registrar compra
+            {isSaving ? 'Registrando...' : 'Registrar compra'}
           </button>
         </form>
+        {error && <p role="alert">{error}</p>}
         {saved && (
           <StatusToast
             message="A compra foi adicionada ao histórico e o estoque atualizado."

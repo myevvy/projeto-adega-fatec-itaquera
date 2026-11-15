@@ -6,7 +6,7 @@ import type { SetupData } from '../../types/usuario'
 
 type SupplierFormPageProps = {
   onNavigate: (path: AppPath) => void
-  onSave: (supplier: Supplier) => void
+  onSave: (supplier: Supplier) => Promise<Supplier>
   setupData: SetupData
   supplier?: Supplier
 }
@@ -33,9 +33,10 @@ function SupplierFormPage({
           onCancel={() =>
             onNavigate(supplier ? `fornecedores/${supplier.id}` : 'fornecedores')
           }
-          onSave={(updatedSupplier) => {
-            onSave(updatedSupplier)
-            onNavigate(`fornecedores/${updatedSupplier.id}`)
+          onSave={async (updatedSupplier) => {
+            const savedSupplier = await onSave(updatedSupplier)
+            onNavigate(`fornecedores/${savedSupplier.id}`)
+            return savedSupplier
           }}
           supplier={supplier}
         />

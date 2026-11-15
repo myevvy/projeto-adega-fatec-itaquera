@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
+import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import SalesPeriodFilter from '../../components/sales-period-filter/SalesPeriodFilter'
 import type { AppPath, SaleRecord, SalesPeriod, SetupData } from '../../types'
 
 type SalesHistoryPageProps = {
   onNavigate: (path: AppPath) => void
+  onCancelSale: (saleId: string) => Promise<void>
   sales: SaleRecord[]
   setupData: SetupData
 }
@@ -14,10 +16,14 @@ const formatCurrency = (value: number) =>
 
 function SalesHistoryPage({
   onNavigate,
+  onCancelSale,
   sales,
   setupData,
 }: SalesHistoryPageProps) {
   const [period, setPeriod] = useState<SalesPeriod>('7')
+  const [saleToCancel, setSaleToCancel] = useState<SaleRecord | null>(null)
+  const [error, setError] = useState('')
+  const [isCancelling, setIsCancelling] = useState(false)
   const filteredSales = useMemo(() => {
     if (period === 'all') return sales
     if (period === 'today') {
@@ -31,7 +37,26 @@ function SalesHistoryPage({
     from.setDate(from.getDate() - days)
     return sales.filter((sale) => new Date(sale.createdAt) >= from)
   }, [period, sales])
-  const total = filteredSales.reduce((sum, sale) => sum + sale.total, 0)
+  const total = filteredSales
+    .filter((sale) => sale.status !== 'CANCELADA')
+    .reduce((sum, sale) => sum + sale.total, 0)
+  const handleCancel = async () => {
+    if (!saleToCancel || isCancelling) return
+    setError('')
+    setIsCancelling(true)
+    try {
+      await onCancelSale(saleToCancel.id)
+      setSaleToCancel(null)
+    } catch (cancelError) {
+      setError(
+        cancelError instanceof Error
+          ? cancelError.message
+          : 'Não foi possível cancelar a venda.',
+      )
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   return (
     <main>
@@ -47,7 +72,10 @@ function SalesHistoryPage({
         <section aria-label="Resumo das vendas">
           <article>
             <p>Vendas Realizadas</p>
-            <strong>{filteredSales.length} vendas</strong>
+            <strong>
+              {filteredSales.filter((sale) => sale.status !== 'CANCELADA').length}{' '}
+              vendas
+            </strong>
           </article>
           <article>
             <p>Faturamento Total</p>
@@ -64,6 +92,7 @@ function SalesHistoryPage({
               + Nova venda
             </button>
           </header>
+          {error && <p role="alert">{error}</p>}
           {filteredSales.length ? (
             <ul>
               {filteredSales.map((sale) => (
@@ -72,8 +101,10 @@ function SalesHistoryPage({
                   <div>
                     <strong>Venda #{sale.id.slice(-6)}</strong>
                     <p>
-                      {sale.items.reduce((count, item) => count + item.quantity, 0)}{' '}
-                      itens · {sale.paymentMethod} ·{' '}
+                      {sale.items.length
+                        ? `${sale.items.reduce((count, item) => count + item.quantity, 0)} itens`
+                        : 'Itens não detalhados pela API'}{' '}
+                      · {sale.paymentMethod} ·{' '}
                       {new Date(sale.createdAt).toLocaleString('pt-BR', {
                         day: '2-digit',
                         month: '2-digit',
@@ -81,8 +112,18 @@ function SalesHistoryPage({
                         minute: '2-digit',
                       })}
                     </p>
+                    {sale.status === 'CANCELADA' && <p>Cancelada</p>}
                   </div>
                   <strong>{formatCurrency(sale.total)}</strong>
+                  {sale.status !== 'CANCELADA' && (
+                    <button
+                      disabled={isCancelling}
+                      onClick={() => setSaleToCancel(sale)}
+                      type="button"
+                    >
+                      Cancelar venda
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -96,6 +137,14 @@ function SalesHistoryPage({
           )}
         </section>
       </section>
+      {saleToCancel && (
+        <ConfirmDialog
+          description="O cancelamento será registrado no banco e fará o estorno do estoque e do financeiro."
+          onCancel={() => setSaleToCancel(null)}
+          onConfirm={() => void handleCancel()}
+          title={isCancelling ? 'Cancelando venda...' : 'Cancelar venda?'}
+        />
+      )}
     </main>
   )
 }

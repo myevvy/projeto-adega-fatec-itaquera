@@ -6,7 +6,7 @@ import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductDetailPageProps = {
   onNavigate: (path: AppPath) => void
-  onUpdate: (product: Product) => void
+  onUpdate: (product: Product) => Promise<void>
   product: Product
   setupData: SetupData
 }
@@ -22,7 +22,24 @@ function ProductDetailPage({
 }: ProductDetailPageProps) {
   const [confirmingDeactivation, setConfirmingDeactivation] = useState(false)
   const [deactivated, setDeactivated] = useState(false)
+  const [isDeactivating, setIsDeactivating] = useState(false)
+  const [actionError, setActionError] = useState('')
   const isLowStock = product.stock <= product.minimumStock
+  const handleDeactivate = async () => {
+    setActionError('')
+    setIsDeactivating(true)
+    try {
+      await onUpdate({ ...product, active: false })
+      setConfirmingDeactivation(false)
+      setDeactivated(true)
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Não foi possível inativar o produto.',
+      )
+    } finally {
+      setIsDeactivating(false)
+    }
+  }
 
   return (
     <main>
@@ -39,6 +56,8 @@ function ProductDetailPage({
         </header>
         <p aria-hidden="true">▧</p>
         <p>{product.category} · {product.variety}</p>
+        {actionError && <p role="alert">{actionError}</p>}
+        {isDeactivating && <p role="status">Inativando produto...</p>}
         <dl>
           <div>
             <dt>Preço de venda</dt>
@@ -71,11 +90,7 @@ function ProductDetailPage({
           <ConfirmDialog
             description={`O produto "${product.name}" deixará de aparecer nas vendas e listagens ativas.`}
             onCancel={() => setConfirmingDeactivation(false)}
-            onConfirm={() => {
-              onUpdate({ ...product, active: false })
-              setConfirmingDeactivation(false)
-              setDeactivated(true)
-            }}
+            onConfirm={() => void handleDeactivate()}
             title="Inativar produto?"
           />
         )}
