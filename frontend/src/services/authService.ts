@@ -19,6 +19,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').rep
   /\/+$/,
   '',
 )
+const apiRequestTimeoutMs = 20_000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -26,6 +27,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function postJson(path: string, body: unknown, token?: string) {
   let response: Response
+  let responseText: string
+  const controller = new AbortController()
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    apiRequestTimeoutMs,
+  )
 
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
@@ -35,12 +42,24 @@ async function postJson(path: string, body: unknown, token?: string) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     })
-  } catch {
-    throw new Error('Não foi possível conectar à API. Verifique se o backend está disponível.')
+    responseText = await response.text()
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(
+        'A API não respondeu em 20 segundos. Verifique a conexão com o backend e o banco de dados.',
+        { cause: error },
+      )
+    }
+    throw new Error(
+      'Não foi possível conectar à API. Verifique se o backend está disponível.',
+      { cause: error },
+    )
+  } finally {
+    window.clearTimeout(timeout)
   }
 
-  const responseText = await response.text()
   let result: unknown
 
   try {

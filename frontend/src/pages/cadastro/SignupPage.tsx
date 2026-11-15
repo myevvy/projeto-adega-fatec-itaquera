@@ -35,6 +35,7 @@ function SignupPage({
     setError('')
     setIsSubmitting(true)
 
+    let registrationCompleted = false
     try {
       await register({
         nome: setupData.adminName,
@@ -42,35 +43,27 @@ function SignupPage({
         telefone: setupData.phone,
         senha: password,
       })
+      registrationCompleted = true
+
+      if (!session) {
+        await login(setupData.email, password)
+      }
+
+      setStep('business')
+      setIsCompleteModalOpen(true)
     } catch (signupError) {
-      setError(
+      const errorMessage =
         signupError instanceof Error
           ? signupError.message
-          : 'Não foi possível concluir o cadastro.',
+          : 'Não foi possível concluir o cadastro.'
+      setError(
+        registrationCompleted
+          ? `Cadastro concluído, mas não foi possível iniciar a sessão: ${errorMessage} Entre pela tela de login.`
+          : errorMessage,
       )
+    } finally {
       setIsSubmitting(false)
-      return
     }
-
-    if (!session) {
-      try {
-        await login(setupData.email, password)
-      } catch (loginError) {
-        setError(
-          `Cadastro concluído, mas não foi possível iniciar a sessão: ${
-            loginError instanceof Error
-              ? loginError.message
-              : 'erro desconhecido'
-          } Entre pela tela de login.`,
-        )
-        setIsSubmitting(false)
-        return
-      }
-    }
-
-    setStep('business')
-    setIsSubmitting(false)
-    setIsCompleteModalOpen(true)
   }
 
   return (
