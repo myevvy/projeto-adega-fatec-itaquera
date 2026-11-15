@@ -1,3 +1,5 @@
+import notificacoesModel from "../models/financeiro/notificacoes.js";
+
 const getNotificacoes = async (req, res) => {
   try {
     const lista = await notificacoesModel.getNotificacoesUsuario(req.usuario.id);

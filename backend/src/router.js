@@ -10,6 +10,7 @@ import vendas from "./controllers/financeiro/vendas.js";
 import despesas from "./controllers/financeiro/despesa.js";
 import relatorios from "./controllers/financeiro/relatorios.js";
 import relatorioEstoque from "./controllers/estoque/relatorios.js";
+import notificacoes from "./controllers/notificacoes.js";
 import upload from "./middlewares/uploadProdutos.js";
 
 router.get("/usuarios", usuarios.getUsuarios);
@@ -66,13 +67,21 @@ router.get(
   relatorios.getRelatorioDespesas,
 );
 
-router.get("/notificacoes", autentica.autenticar, getNotificacoes);
+router.get(
+  "/notificacoes",
+  autentica.autenticar,
+  notificacoes.getNotificacoes,
+);
 router.get(
   "/notificacoes/nao-lidas/total",
   autentica.autenticar,
-  getTotalNaoLidas,
+  notificacoes.getTotalNaoLidas,
 );
-router.patch("/notificacoes/:id/lida", autentica.autenticar, marcarComoLida);
+router.patch(
+  "/notificacoes/:id/lida",
+  autentica.autenticar,
+  notificacoes.marcarComoLida,
+);
 
 router.get("/produtos", produtos.getProdutos);
 router.get("/produtos/inativos", produtos.getProdutosInativos);
