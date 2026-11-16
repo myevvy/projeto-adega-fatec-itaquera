@@ -8,6 +8,16 @@ const CAMPOS_PUBLICOS =
   "DATE_FORMAT(u.data_nascimento, '%Y-%m-%d') AS aniversario, u.cargo, u.ativo";
 const FROM = "FROM usuario u JOIN perfil p ON p.id = u.perfil_id";
 
+const getUsuarioLogin = async (email) => {
+  const [rows] = await db.query(
+    `SELECT ${CAMPOS_PUBLICOS}, u.senha_hash ${FROM}
+     WHERE u.email = ?`,
+    [email],
+  );
+
+  return rows[0] || null;
+};
+
 const getUsuario = async (email) => {
   if (email === undefined) {
     const [rows] = await db.query(
@@ -118,6 +128,7 @@ const alterarStatus = async (id, status) => {
 export default {
   getUsuario,
   getUsuarioID,
+  getUsuarioLogin,
   postUsuario,
   putUsuario,
   alterarStatus,

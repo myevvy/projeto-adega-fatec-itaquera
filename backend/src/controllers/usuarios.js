@@ -79,7 +79,7 @@ const login = async (req, res) => {
       });
     }
 
-    const usuario = await usuarioModel.getUsuario(email);
+    const usuario = await usuarioModel.getUsuarioLogin(email);
 
     if (!usuario) {
       return res.status(404).json({
