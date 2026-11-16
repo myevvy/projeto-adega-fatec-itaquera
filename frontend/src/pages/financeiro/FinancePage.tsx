@@ -28,6 +28,8 @@ function sumMoney(values: number[]) {
 }
 
 function isWithinPeriod(date: Date, period: SalesPeriod) {
+  if (period === 'all') return true
+
   const now = new Date()
   if (period === 'today') {
     return date.toDateString() === now.toDateString()
@@ -44,7 +46,7 @@ function FinancePage({
   sales,
   setupData,
 }: FinancePageProps) {
-  const [period, setPeriod] = useState<SalesPeriod>('today')
+  const [period, setPeriod] = useState<SalesPeriod>('all')
   const filteredSales = useMemo(
     () =>
       sales.filter(
@@ -85,7 +87,7 @@ function FinancePage({
     ...filteredSales.map((sale) => sale.total),
     1,
   )
-  const days = period === 'today' ? 1 : Number(period)
+  const days = period === 'today' ? 1 : period === 'all' ? 7 : Number(period)
   const dailyTotals = Array.from({ length: Math.min(days, 7) }, (_, index) => {
     const day = new Date()
     day.setDate(day.getDate() - (Math.min(days, 7) - 1 - index))

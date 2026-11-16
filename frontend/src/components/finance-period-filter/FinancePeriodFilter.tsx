@@ -12,6 +12,7 @@ const periods: { label: string; value: SalesPeriod }[] = [
   { label: '3 meses', value: '90' },
   { label: '6 meses', value: '180' },
   { label: '12 meses', value: '365' },
+  { label: 'Todo o período', value: 'all' },
 ]
 
 function FinancePeriodFilter({ onChange, value }: FinancePeriodFilterProps) {

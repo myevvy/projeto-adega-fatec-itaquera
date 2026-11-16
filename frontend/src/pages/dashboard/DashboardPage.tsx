@@ -82,7 +82,14 @@ function DashboardPage({
           <p>Faturamento: {formatCurrency(revenueToday)}</p>
           <p>Vendas hoje: {todaySales.length}</p>
           <p>Despesas: {formatCurrency(expensesTotal)}</p>
-          <p>Lucro bruto: {formatCurrency(revenueToday - expensesTotal)}</p>
+          <p>
+            Resultado após despesas de hoje:{' '}
+            {formatCurrency(revenueToday - expensesTotal)}
+          </p>
+          <small>
+            Vendas menos despesas do dia; não inclui o custo dos produtos
+            vendidos.
+          </small>
         </section>
         <section aria-labelledby="stock-alerts">
           <h2 id="stock-alerts">Atenção ao estoque</h2>
