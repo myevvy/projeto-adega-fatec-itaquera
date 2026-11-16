@@ -4,6 +4,7 @@ import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductsPageProps = {
+  canManageProducts: boolean
   onNavigate: (path: AppPath) => void
   products: Product[]
   setupData: SetupData
@@ -12,7 +13,12 @@ type ProductsPageProps = {
 const formatCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
+function ProductsPage({
+  canManageProducts,
+  onNavigate,
+  products,
+  setupData,
+}: ProductsPageProps) {
   const [search, setSearch] = useState('')
   const visibleProducts = useMemo(
     () =>
@@ -46,9 +52,11 @@ function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
             label="Pesquisar produtos por voz"
             onTranscript={setSearch}
           />
-          <button onClick={() => onNavigate('produtos/novo')} type="button">
-            + Novo produto
-          </button>
+          {canManageProducts && (
+            <button onClick={() => onNavigate('produtos/novo')} type="button">
+              + Novo produto
+            </button>
+          )}
         </header>
         {visibleProducts.length ? (
           <ul>

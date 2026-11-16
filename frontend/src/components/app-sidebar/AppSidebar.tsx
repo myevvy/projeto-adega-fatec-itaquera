@@ -95,15 +95,6 @@ function ReportIcon() {
   )
 }
  
-function UsersIcon() {
-  return (
-    <svg {...iconBase}>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5a6 6 0 0 1 3.5 5.5" />
-    </svg>
-  )
-}
- 
 function GearIcon() {
   return (
     <svg {...iconBase}>
@@ -131,7 +122,6 @@ const moreItems: NavItem[] = [
   { label: 'Fornecedores', page: 'fornecedores' as const, icon: () => <TruckIcon /> },
   { label: 'Compras', page: 'compras' as const, icon: () => <CartIcon /> },
   { label: 'Relatórios', page: 'relatorios' as const, icon: () => <ReportIcon /> },
-  { label: 'Usuários', page: 'usuarios' as const, icon: () => <UsersIcon />, adminOnly: true },
   { label: 'Configurações', page: 'configuracoes' as const, icon: () => <GearIcon />, adminOnly: true },
 ]
  

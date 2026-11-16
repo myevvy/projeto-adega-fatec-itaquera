@@ -5,6 +5,7 @@ import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductDetailPageProps = {
+  canManageProducts: boolean
   onNavigate: (path: AppPath) => void
   onUpdate: (product: Product) => Promise<void>
   product: Product
@@ -15,6 +16,7 @@ const formatCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 function ProductDetailPage({
+  canManageProducts,
   onNavigate,
   onUpdate,
   product,
@@ -50,9 +52,14 @@ function ProductDetailPage({
         </button>
         <header>
           <h1>{product.name}</h1>
-          <button onClick={() => onNavigate(`produtos/${product.id}/editar`)} type="button">
-            Editar produto
-          </button>
+          {canManageProducts && (
+            <button
+              onClick={() => onNavigate(`produtos/${product.id}/editar`)}
+              type="button"
+            >
+              Editar produto
+            </button>
+          )}
         </header>
         <p aria-hidden="true">▧</p>
         <p>{product.category} · {product.variety}</p>
@@ -81,11 +88,16 @@ function ProductDetailPage({
         >
           Movimentar estoque
         </button>
-        <p>
-          <button onClick={() => setConfirmingDeactivation(true)} type="button">
-            Inativar produto
-          </button>
-        </p>
+        {canManageProducts && (
+          <p>
+            <button
+              onClick={() => setConfirmingDeactivation(true)}
+              type="button"
+            >
+              Inativar produto
+            </button>
+          </p>
+        )}
         {confirmingDeactivation && (
           <ConfirmDialog
             description={`O produto "${product.name}" deixará de aparecer nas vendas e listagens ativas.`}

@@ -547,6 +547,7 @@ function AppRoutes({
         path="/produtos"
         element={
           <ProductsPage
+            canManageProducts={isAdministrator}
             onNavigate={navigateTo}
             products={products}
             setupData={setupData}
@@ -556,30 +557,39 @@ function AppRoutes({
       <Route
         path="/produtos/novo"
         element={
-          <ProductFormPage
-            categories={[...new Set(products.map((product) => product.category))]}
-            onNavigate={navigateTo}
-            onSave={saveProduct}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <ProductFormPage
+              categories={[...new Set(products.map((product) => product.category))]}
+              onNavigate={navigateTo}
+              onSave={saveProduct}
+              setupData={setupData}
+            />
+          ) : (
+            <Navigate replace to="/produtos" />
+          )
         }
       />
       <Route
         path="/produtos/:productId/editar"
         element={
-          <ProductEditRoute
-            categories={[...new Set(products.map((product) => product.category))]}
-            onNavigate={navigateTo}
-            onSave={saveProduct}
-            productById={productById}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <ProductEditRoute
+              categories={[...new Set(products.map((product) => product.category))]}
+              onNavigate={navigateTo}
+              onSave={saveProduct}
+              productById={productById}
+              setupData={setupData}
+            />
+          ) : (
+            <Navigate replace to="/produtos" />
+          )
         }
       />
       <Route
         path="/produtos/:productId"
         element={
           <ProductDetailRoute
+            canManageProducts={isAdministrator}
             onNavigate={navigateTo}
             onUpdate={updateProduct}
             productById={productById}
@@ -759,6 +769,7 @@ function SupplierDetailRoute({
 
 type ProductRouteProps = {
   categories?: string[]
+  canManageProducts?: boolean
   onNavigate: (path: AppPath) => void
   onSave?: (product: Product, image?: File) => Promise<void>
   onUpdate?: (product: Product) => Promise<void>
@@ -788,6 +799,7 @@ function ProductEditRoute({
 }
 
 function ProductDetailRoute({
+  canManageProducts,
   onNavigate,
   onUpdate,
   productById,
@@ -798,6 +810,7 @@ function ProductDetailRoute({
   if (!product || !onUpdate) return <Navigate replace to="/produtos" />
   return (
     <ProductDetailPage
+      canManageProducts={canManageProducts ?? false}
       onNavigate={onNavigate}
       onUpdate={onUpdate}
       product={product}
