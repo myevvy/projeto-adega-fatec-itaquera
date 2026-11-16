@@ -1,3 +1,5 @@
+import { api, apiErrorMessage, isAxiosError } from './api'
+
 export type AuthUser = {
   id: number
   perfil_id: number
@@ -20,12 +22,6 @@ export type DirectoryUser = {
   telefone: string | null
   ativo: boolean
 }
-
-const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(
-  /\/+$/,
-  '',
-)
-const apiRequestTimeoutMs = 20_000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -63,70 +59,34 @@ async function requestJson(
   method: 'GET' | 'POST' | 'DELETE',
   options: { body?: unknown; token?: string } = {},
 ) {
-  let response: Response
-  let responseText: string
-  const controller = new AbortController()
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    apiRequestTimeoutMs,
-  )
-
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
+    const response = await api.request({
+      url: path,
       method,
       headers: {
-        ...(options.body === undefined
-          ? {}
-          : { 'Content-Type': 'application/json' }),
         ...(options.token
           ? { Authorization: `Bearer ${options.token}` }
           : {}),
       },
-      ...(options.body === undefined
-        ? {}
-        : { body: JSON.stringify(options.body) }),
-      signal: controller.signal,
+      data: options.body,
     })
-    responseText = await response.text()
+    return response.data
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (
+      path === '/usuarios' &&
+      method === 'POST' &&
+      isAxiosError(error) &&
+      error.response?.status === 404
+    ) {
       throw new Error(
-        'A API não respondeu em 20 segundos. Verifique a conexão com o backend e o banco de dados.',
+        'O backend ainda não disponibiliza a criação segura de colaboradores em /usuarios.',
         { cause: error },
       )
     }
-    throw new Error(
-      'Não foi possível conectar à API. Verifique se o backend está disponível.',
-      { cause: error },
-    )
-  } finally {
-    window.clearTimeout(timeout)
+    throw new Error(apiErrorMessage(error, 'Não foi possível concluir a solicitação.'), {
+      cause: error,
+    })
   }
-
-  let result: unknown
-
-  try {
-    result = responseText ? JSON.parse(responseText) : {}
-  } catch {
-    if (response.ok) {
-      throw new Error('A API retornou uma resposta inválida.')
-    }
-  }
-
-  if (!response.ok) {
-    if (path === '/usuarios' && method === 'POST' && response.status === 404) {
-      throw new Error(
-        'O backend ainda não disponibiliza a criação segura de colaboradores em /usuarios.',
-      )
-    }
-    const message =
-      isRecord(result) && typeof result.mensagem === 'string'
-        ? result.mensagem
-        : `A API recusou a solicitação (HTTP ${response.status}).`
-    throw new Error(message)
-  }
-
-  return result
 }
 
 export async function login(email: string, senha: string): Promise<AuthSession> {

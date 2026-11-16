@@ -1,14 +1,9 @@
 import type { ExpenseRecord, Product, SaleRecord } from '../types'
 import type { PurchaseRecord } from '../types/financeiro'
 import type { Supplier, SupplierPurchase } from '../types/fornecedor'
+import { api, apiErrorMessage } from './api'
 
 type ApiRecord = Record<string, unknown>
-
-const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(
-  /\/+$/,
-  '',
-)
-const apiRequestTimeoutMs = 20_000
 
 function isRecord(value: unknown): value is ApiRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -43,62 +38,21 @@ async function request(
   body?: unknown,
   formData?: FormData,
 ): Promise<unknown> {
-  let response: Response
-  let responseText: string
-  const controller = new AbortController()
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    apiRequestTimeoutMs,
-  )
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
+    const response = await api.request({
+      url: path,
       method,
       headers: {
         Authorization: `Bearer ${token}`,
-        ...(body === undefined || formData
-          ? {}
-          : { 'Content-Type': 'application/json' }),
       },
-      ...(body === undefined
-        ? {}
-        : { body: formData ?? JSON.stringify(body) }),
-      signal: controller.signal,
+      data: formData ?? body,
     })
-    responseText = await response.text()
+    return response.data
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(
-        'A API não respondeu em 20 segundos. Verifique a conexão com o backend.',
-        { cause: error },
-      )
-    }
-    throw new Error(
-      'Não foi possível conectar à API. Verifique a conexão e se o backend está disponível.',
-      { cause: error },
-    )
-  } finally {
-    window.clearTimeout(timeout)
+    throw new Error(apiErrorMessage(error, 'Não foi possível concluir a solicitação.'), {
+      cause: error,
+    })
   }
-
-  let result: unknown = {}
-  if (responseText) {
-    try {
-      result = JSON.parse(responseText)
-    } catch (error) {
-      if (response.ok) {
-        throw new Error('A API retornou uma resposta inválida.', { cause: error })
-      }
-    }
-  }
-
-  if (!response.ok) {
-    const message =
-      isRecord(result) && typeof result.mensagem === 'string'
-        ? result.mensagem
-        : `A API recusou a solicitação (HTTP ${response.status}).`
-    throw new Error(message)
-  }
-  return result
 }
 
 function records(value: unknown, entity: string): ApiRecord[] {

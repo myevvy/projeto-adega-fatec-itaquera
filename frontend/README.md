@@ -2,6 +2,16 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## API URL
+
+Set `VITE_API_URL` in `frontend/.env` for local development. The Vite development
+server defaults to `http://localhost:3000` when it is not set.
+
+Production builds require `VITE_API_URL`; the Azure Static Web Apps workflow
+reads it from the GitHub Actions repository variable with the same name and
+fails before deploying if the value is missing or is not an HTTP(S) URL. Vite
+embeds this value during the build, so changing it requires a new deployment.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
