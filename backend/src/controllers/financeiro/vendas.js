@@ -8,7 +8,7 @@ const getVendas = async (_req, res) => {
     return res.status(200).json(vendas);
   } catch (erro) {
     console.error("Erro ao buscar vendas:", erro.message);
-
+ 
     return res.status(500).json({
       mensagem:
         "Erro interno ao recuperar vendas... Comunique-nos sobre o ocorrido",

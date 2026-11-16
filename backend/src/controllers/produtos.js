@@ -62,7 +62,7 @@ const postProdutos = async (req, res) => {
       estoque,
       qntMinima,
       desc,
-      imagem
+      imagem,
     });
 
     return res.status(201).json({
@@ -71,6 +71,13 @@ const postProdutos = async (req, res) => {
     });
   } catch (erro) {
     console.log("Erro no post produto:", erro.message);
+
+    if (erro.code === "CATEGORIA_INVALIDA") {
+      return res.status(400).json({
+        mensagem:
+          "Categoria inválida. Informe um ID ou nome de uma categoria existente e ativa.",
+      });
+    }
 
     return res.status(500).json({
       mensagem: "Erro interno ao cadastrar produto.",

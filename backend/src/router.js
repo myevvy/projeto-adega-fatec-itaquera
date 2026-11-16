@@ -30,9 +30,21 @@ router.delete(
 );
 
 router.get("/fornecedores", autentica.autenticar, fornecedores.getFornecedores);
-router.post("/fornecedores", autentica.autenticar, fornecedores.postFornecedores);
-router.put("/fornecedores/:id", autentica.autenticar, fornecedores.putFornecedor);
-router.delete("/fornecedores/:id", autentica.autenticar, fornecedores.deleteFornecedor);
+router.post(
+  "/fornecedores",
+  autentica.autenticar,
+  fornecedores.postFornecedores,
+);
+router.put(
+  "/fornecedores/:id",
+  autentica.autenticar,
+  fornecedores.putFornecedor,
+);
+router.delete(
+  "/fornecedores/:id",
+  autentica.autenticar,
+  fornecedores.deleteFornecedor,
+);
 
 router.get("/compras", autentica.autenticar, compras.getCompras);
 router.get(
@@ -43,7 +55,7 @@ router.get(
 router.post("/compras", autentica.autenticar, compras.postCompra);
 router.delete("/compras/:id", autentica.autenticar, compras.cancelarCompra);
 
-router.get("/vendas", vendas.getVendas);
+router.get("/vendas", autentica.autenticar, vendas.getVendas);
 router.get(
   "/vendas/usuario/:id",
   autentica.autenticar,
@@ -76,12 +88,28 @@ router.get(
 );
 
 router.get("/produtos", autentica.autenticar, produtos.getProdutos);
-router.get("/produtos/inativos", autentica.autenticar, produtos.getProdutosInativos);
-router.get("/produtos/historico/:id", autentica.autenticar, produtos.getHistoricoPreco);
-router.get("/produtos/alertas", autentica.autenticar, produtos.getEstoqueAlertas);
+router.get(
+  "/produtos/inativos",
+  autentica.autenticar,
+  produtos.getProdutosInativos,
+);
+router.get(
+  "/produtos/historico/:id",
+  autentica.autenticar,
+  produtos.getHistoricoPreco,
+);
+router.get(
+  "/produtos/alertas",
+  autentica.autenticar,
+  produtos.getEstoqueAlertas,
+);
 router.post("/produtos", upload.single("imagem"), produtos.postProdutos);
 router.put("/produtos/:id", autentica.autenticar, produtos.putProdutos);
-router.put("/produtos/quantidade/:id", autentica.autenticar, produtos.alterarQuantidade);
+router.put(
+  "/produtos/quantidade/:id",
+  autentica.autenticar,
+  produtos.alterarQuantidade,
+);
 router.delete("/produtos/:id", autentica.autenticar, produtos.deleteProdutos);
 router.patch("/produtos/:id", autentica.autenticar, produtos.reativarProduto);
 
