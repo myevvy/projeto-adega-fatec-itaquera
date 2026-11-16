@@ -1,0 +1,43 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/sw.js",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/workbox-*.js",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/manifest.webmanifest",
+      "headers": {
+        "cache-control": "no-cache"
+      }
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/assets/*",
+      "/sw.js",
+      "/workbox-*.js",
+      "/manifest.webmanifest"
+    ]
+  }
+}
