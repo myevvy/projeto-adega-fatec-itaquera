@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
+import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductsPageProps = {
@@ -41,6 +42,10 @@ function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
               value={search}
             />
           </label>
+          <VoiceSearchButton
+            label="Pesquisar produtos por voz"
+            onTranscript={setSearch}
+          />
           <button onClick={() => onNavigate('produtos/novo')} type="button">
             + Novo produto
           </button>

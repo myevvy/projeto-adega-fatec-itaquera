@@ -73,13 +73,13 @@ async function requestJson(
     return response.data
   } catch (error) {
     if (
-      path === '/usuarios' &&
+      path === '/cadastro' &&
       method === 'POST' &&
       isAxiosError(error) &&
       error.response?.status === 404
     ) {
       throw new Error(
-        'O backend ainda não disponibiliza a criação segura de colaboradores em /usuarios.',
+        'O backend não encontrou a rota de cadastro administrativo /cadastro.',
         { cause: error },
       )
     }
@@ -167,9 +167,10 @@ export async function createCollaborator(
     senha: string
   },
 ) {
-  return requestJson('/usuarios', 'POST', {
+  return requestJson('/cadastro', 'POST', {
     token,
     body: {
+      perfil_id: 2,
       nome: input.nome,
       email: input.email,
       telefone: input.telefone,

@@ -220,7 +220,9 @@ export async function adjustProductStock(
   productId: number,
   quantity: number,
 ): Promise<void> {
-  await request(`/produtos/${productId}`, 'PUT', token, { quantidade: quantity })
+  await request(`/produtos/quantidade/${productId}`, 'PUT', token, {
+    quantidade: quantity,
+  })
 }
 
 export async function listSuppliers(token: string): Promise<Supplier[]> {

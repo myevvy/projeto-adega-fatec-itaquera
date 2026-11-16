@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
+import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, PaymentMethod, Product, SaleRecord, SetupData } from '../../types'
 
 type NewSalePageProps = {
@@ -118,6 +119,10 @@ function NewSalePage({ onNavigate, onSaleCreated, products, setupData }: NewSale
               value={search}
             />
           </label>
+          <VoiceSearchButton
+            label="Buscar produto por voz"
+            onTranscript={setSearch}
+          />
           <div aria-label="Filtrar por categoria">
             {['Todos', ...new Set(products.map((product) => product.category))].map((option) => (
               <button

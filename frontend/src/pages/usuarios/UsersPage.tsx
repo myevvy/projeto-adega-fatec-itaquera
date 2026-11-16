@@ -21,6 +21,10 @@ const emptyForm = {
   senha: '',
 }
 
+function generateInitialPassword() {
+  return `Adega-${crypto.randomUUID()}`
+}
+
 function UsersPage({ onNavigate }: UsersPageProps) {
   const { session } = useAuth()
   const [users, setUsers] = useState<DirectoryUser[]>([])
@@ -85,14 +89,17 @@ function UsersPage({ onNavigate }: UsersPageProps) {
     setError('')
     setMessage('')
     setIsSubmitting(true)
+    const initialPassword = form.senha
     try {
       await createCollaborator(session.token, {
         nome: form.nome.trim(),
         email: form.email.trim(),
         telefone: form.telefone.trim(),
-        senha: form.senha,
+        senha: initialPassword,
       })
-      setMessage('Colaborador cadastrado com sucesso.')
+      setMessage(
+        `Colaborador cadastrado com sucesso. Senha inicial de ${form.nome.trim()}: ${initialPassword}. Compartilhe-a de forma segura.`,
+      )
       setForm(emptyForm)
       setIsFormOpen(false)
       await refreshUsers()
@@ -129,6 +136,15 @@ function UsersPage({ onNavigate }: UsersPageProps) {
     }
   }
 
+  const toggleForm = () => {
+    setError('')
+    setMessage('')
+    if (!isFormOpen) {
+      setForm({ ...emptyForm, senha: generateInitialPassword() })
+    }
+    setIsFormOpen(!isFormOpen)
+  }
+
   const collaborators = users.filter(
     (user) => user.tipo.trim().toUpperCase() !== 'ADMINISTRADOR',
   )
@@ -136,11 +152,17 @@ function UsersPage({ onNavigate }: UsersPageProps) {
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#1c1f1a] md:flex">
       <AppSidebar
-        currentPage="usuarios"
+        currentPage="configuracoes"
         onNavigate={onNavigate}
         userName={session?.usuario.nome ?? ''}
       />
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+        <button
+          onClick={() => onNavigate('configuracoes')}
+          type="button"
+        >
+          ← Voltar para configurações
+        </button>
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-[#687064]">Administração</p>
@@ -154,11 +176,7 @@ function UsersPage({ onNavigate }: UsersPageProps) {
           </div>
           <button
             className="min-h-11 cursor-pointer rounded-xl bg-[#3d4d35] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#33412c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d4d35] focus-visible:ring-offset-2"
-            onClick={() => {
-              setError('')
-              setMessage('')
-              setIsFormOpen((open) => !open)
-            }}
+            onClick={toggleForm}
             type="button"
           >
             {isFormOpen ? 'Cancelar' : 'Adicionar colaborador'}
@@ -193,8 +211,8 @@ function UsersPage({ onNavigate }: UsersPageProps) {
               Novo colaborador
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Defina uma senha inicial e compartilhe-a com o colaborador de
-              forma segura.
+              Uma senha inicial exclusiva será gerada para este colaborador e
+              exibida após o cadastro. Compartilhe-a por um canal seguro.
             </p>
             <form
               className="mt-5 grid gap-4 sm:grid-cols-2"
@@ -246,11 +264,9 @@ function UsersPage({ onNavigate }: UsersPageProps) {
                   autoComplete="new-password"
                   className="min-h-11 rounded-xl border border-gray-300 px-3 py-2 font-normal focus:border-[#3d4d35] focus:outline-none focus:ring-2 focus:ring-[#3d4d35]/20"
                   minLength={8}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, senha: event.target.value }))
-                  }
+                  readOnly
                   required
-                  type="password"
+                  type="text"
                   value={form.senha}
                 />
               </label>

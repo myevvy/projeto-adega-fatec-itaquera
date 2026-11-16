@@ -9,27 +9,7 @@ type SettingsPageProps = {
   setupData: SetupData
 }
 
-type View = 'menu' | 'business' | 'new-user'
-type Role = 'Administrador' | 'Operador'
-
-type LocalUser = {
-  id: string
-  name: string
-  email: string
-  role: Role
-}
-
-const roleOptions: { value: Role; description: string }[] = [
-  {
-    value: 'Administrador',
-    description:
-      'Acesso completo, incluindo configurações e gestão de usuários.',
-  },
-  {
-    value: 'Operador',
-    description: 'Registra vendas e compras e acompanha o estoque da adega.',
-  },
-]
+type View = 'menu' | 'business'
 
 const focusRing =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40'
@@ -105,20 +85,6 @@ function SettingsPage({
   const [form, setForm] = useState(setupData)
   const [message, setMessage] = useState('')
 
-  const [users, setUsers] = useState<LocalUser[]>([
-    {
-      id: 'admin',
-      name: setupData.adminName || 'Marcos Almeida',
-      email: setupData.email,
-      role: 'Administrador',
-    },
-  ])
-  const [newUser, setNewUser] = useState<{
-    name: string
-    email: string
-    role: Role
-  }>({ name: '', email: '', role: 'Operador' })
-
   const goTo = (next: View) => {
     setMessage('')
     setView(next)
@@ -128,24 +94,6 @@ function SettingsPage({
     event.preventDefault()
     onSetupDataChange(form)
     setMessage('Dados da adega salvos neste navegador.')
-  }
-
-  const handleUserSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const name = newUser.name.trim()
-    if (!name) return
-    setUsers((current) => [
-      ...current,
-      {
-        id: `${Date.now()}`,
-        name,
-        email: newUser.email.trim(),
-        role: newUser.role,
-      },
-    ])
-    setNewUser({ name: '', email: '', role: 'Operador' })
-    setView('menu')
-    setMessage('Usuário criado neste navegador.')
   }
 
   const statusMessage = message && (
@@ -193,39 +141,20 @@ function SettingsPage({
             <section aria-labelledby="users-title" className="mt-7">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold" id="users-title">
-                  Usuários
+                  Acesso de colaboradores
                 </h2>
                 <button
                   className={`rounded-lg bg-[#3b4a2b] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#2f3b22] ${focusRing}`}
-                  onClick={() => goTo('new-user')}
+                  onClick={() => onNavigate('configuracoes/usuarios')}
                   type="button"
                 >
-                  + Novo
+                  Gerenciar
                 </button>
               </div>
-
-              <ul className="mt-3 divide-y divide-[#e3dfd2] overflow-hidden rounded-2xl border border-[#e3dfd2] bg-white">
-                {users.map((user) => (
-                  <li
-                    className="flex items-center gap-3 px-4 py-3.5"
-                    key={user.id}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1c1d18] text-sm font-medium text-white"
-                    >
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-[#6f6b60]">{user.role}</p>
-                    </div>
-                    <ChevronIcon />
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-2 text-xs text-[#6f6b60]">
+                Consulte, cadastre ou desative colaboradores conectados ao banco
+                de dados.
+              </p>
             </section>
           </>
         )}
@@ -339,119 +268,6 @@ function SettingsPage({
           </>
         )}
 
-        {/* Novo usuário */}
-        {view === 'new-user' && (
-          <>
-            <ScreenHeader onBack={() => goTo('menu')} title="Novo usuário" />
-            <p className="mt-5 text-sm text-[#6f6b60]">
-              Cadastre um usuário e defina o perfil de acesso à sua adega.
-            </p>
-
-            <form className="mt-5 flex flex-1 flex-col" onSubmit={handleUserSubmit}>
-              <div className="space-y-4">
-                <label className={labelClass}>
-                  Nome completo
-                  <input
-                    className={inputClass}
-                    onChange={(event) =>
-                      setNewUser((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    placeholder="Digite o nome completo"
-                    required
-                    value={newUser.name}
-                  />
-                </label>
-                <label className={labelClass}>
-                  E-mail
-                  <input
-                    className={inputClass}
-                    onChange={(event) =>
-                      setNewUser((current) => ({
-                        ...current,
-                        email: event.target.value,
-                      }))
-                    }
-                    placeholder="Digite o e-mail"
-                    type="email"
-                    value={newUser.email}
-                  />
-                </label>
-              </div>
-
-              <fieldset className="mt-5">
-                <legend className="text-sm font-medium">Perfil</legend>
-                <p className="mt-0.5 text-xs text-[#6f6b60]">
-                  Escolha as permissões deste usuário.
-                </p>
-                <div className="mt-3 space-y-3">
-                  {roleOptions.map((option) => {
-                    const selected = newUser.role === option.value
-                    return (
-                      <label
-                        className={`flex cursor-pointer items-start justify-between gap-4 rounded-2xl border p-4 transition focus-within:ring-2 focus-within:ring-[#3b4a2b]/40 ${
-                          selected
-                            ? 'border-[#3b4a2b] bg-[#ebe8dd]'
-                            : 'border-[#e3dfd2] bg-white hover:bg-[#fdfcf8]'
-                        }`}
-                        key={option.value}
-                      >
-                        <span>
-                          <span className="block text-sm font-semibold">
-                            {option.value}
-                          </span>
-                          <span className="mt-1 block text-xs text-[#6f6b60]">
-                            {option.description}
-                          </span>
-                        </span>
-                        <input
-                          checked={selected}
-                          className="sr-only"
-                          name="role"
-                          onChange={() =>
-                            setNewUser((current) => ({
-                              ...current,
-                              role: option.value,
-                            }))
-                          }
-                          type="radio"
-                          value={option.value}
-                        />
-                        <span
-                          aria-hidden="true"
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            selected
-                              ? 'border-[#3b4a2b]'
-                              : 'border-[#b4b0a3]'
-                          }`}
-                        >
-                          {selected && (
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#3b4a2b]" />
-                          )}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </fieldset>
-
-              <div className="mt-8 space-y-3">
-                <button className={primaryButtonClass} type="submit">
-                  Criar usuário
-                </button>
-                <button
-                  className={`w-full rounded-xl py-2 text-sm text-[#4b4d42] underline-offset-4 hover:underline ${focusRing}`}
-                  onClick={() => goTo('menu')}
-                  type="button"
-                >
-                  Voltar
-                </button>
-              </div>
-            </form>
-          </>
-        )}
       </main>
     </div>
   )

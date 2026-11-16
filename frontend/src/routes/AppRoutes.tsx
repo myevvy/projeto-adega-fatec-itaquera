@@ -398,7 +398,16 @@ function AppRoutes({
       <Route
         path="/cadastro"
         element={
-          <Navigate replace to={session ? '/dashboard' : '/login'} />
+          <Navigate
+            replace
+            to={
+              session
+                ? isAdministrator
+                  ? '/configuracoes/usuarios'
+                  : '/dashboard'
+                : '/login'
+            }
+          />
         }
       />
       <Route
@@ -548,6 +557,7 @@ function AppRoutes({
         path="/produtos/novo"
         element={
           <ProductFormPage
+            categories={[...new Set(products.map((product) => product.category))]}
             onNavigate={navigateTo}
             onSave={saveProduct}
             setupData={setupData}
@@ -558,6 +568,7 @@ function AppRoutes({
         path="/produtos/:productId/editar"
         element={
           <ProductEditRoute
+            categories={[...new Set(products.map((product) => product.category))]}
             onNavigate={navigateTo}
             onSave={saveProduct}
             productById={productById}
@@ -633,13 +644,22 @@ function AppRoutes({
         }
       />
       <Route
-        path="/usuarios"
+        path="/configuracoes/usuarios"
         element={
           isAdministrator ? (
             <UsersPage onNavigate={navigateTo} />
           ) : (
             <Navigate replace to="/dashboard" />
           )
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          <Navigate
+            replace
+            to={isAdministrator ? '/configuracoes/usuarios' : '/dashboard'}
+          />
         }
       />
       <Route
@@ -738,6 +758,7 @@ function SupplierDetailRoute({
 }
 
 type ProductRouteProps = {
+  categories?: string[]
   onNavigate: (path: AppPath) => void
   onSave?: (product: Product, image?: File) => Promise<void>
   onUpdate?: (product: Product) => Promise<void>
@@ -746,6 +767,7 @@ type ProductRouteProps = {
 }
 
 function ProductEditRoute({
+  categories,
   onNavigate,
   onSave,
   productById,
@@ -756,6 +778,7 @@ function ProductEditRoute({
   if (!product || !onSave) return <Navigate replace to="/produtos" />
   return (
     <ProductFormPage
+      categories={categories ?? []}
       onNavigate={onNavigate}
       onSave={onSave}
       product={product}

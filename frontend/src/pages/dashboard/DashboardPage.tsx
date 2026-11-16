@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
+import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, SaleRecord, SetupData } from '../../types'
 import type { ExpenseRecord } from '../../types/financeiro'
 import type { Product } from '../../types/produto'
@@ -10,28 +11,6 @@ type DashboardPageProps = {
   products: Product[]
   sales: SaleRecord[]
   setupData: SetupData
-}
-
-type SpeechRecognitionLike = {
-  lang: string
-  interimResults: boolean
-  onresult:
-    | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
-    | null
-  onend: (() => void) | null
-  onerror: (() => void) | null
-  start: () => void
-  stop: () => void
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike
-
-const getSpeechRecognition = (): SpeechRecognitionCtor | undefined => {
-  if (typeof window === 'undefined') return undefined
-  const w = window as unknown as {
-    SpeechRecognition?: SpeechRecognitionCtor
-    webkitSpeechRecognition?: SpeechRecognitionCtor
-  }
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition
 }
 
 const formatCurrency = (value: number) =>
@@ -174,18 +153,13 @@ function DashboardPage({
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [listening, setListening] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
-  const SpeechCtor = getSpeechRecognition()
 
   useClickOutside(searchRef, searchOpen, () => setSearchOpen(false))
   useClickOutside(notificationsRef, notificationsOpen, () =>
     setNotificationsOpen(false),
   )
-  useEffect(() => () => recognitionRef.current?.stop(), [])
-
   const adminName = setupData.adminName || 'Marcos'
   const businessName = setupData.businessName || 'Adega Bom Sabor'
 
@@ -227,27 +201,6 @@ function DashboardPage({
         )
         .slice(0, 5)
     : []
-
-  const toggleVoiceSearch = () => {
-    if (!SpeechCtor) return
-    if (listening) {
-      recognitionRef.current?.stop()
-      return
-    }
-    const recognition = new SpeechCtor()
-    recognition.lang = 'pt-BR'
-    recognition.interimResults = false
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript ?? ''
-      setSearch(transcript)
-      setSearchOpen(true)
-    }
-    recognition.onend = () => setListening(false)
-    recognition.onerror = () => setListening(false)
-    recognitionRef.current = recognition
-    setListening(true)
-    recognition.start()
-  }
 
   const formatSaleDate = (createdAt: SaleRecord['createdAt']) => {
     const date = new Date(createdAt)
@@ -379,21 +332,16 @@ function DashboardPage({
               type="search"
               value={search}
             />
-            {SpeechCtor && (
-              <button
-                aria-label={listening ? 'Parar busca por voz' : 'Buscar por voz'}
-                aria-pressed={listening}
-                className={`flex h-8 w-8 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40 ${
-                  listening
-                    ? 'bg-[#c8704d] text-white motion-safe:animate-pulse'
-                    : 'text-[#26291f] hover:bg-black/5'
-                }`}
-                onClick={toggleVoiceSearch}
-                type="button"
-              >
-                <MicIcon />
-              </button>
-            )}
+            <VoiceSearchButton
+              buttonClassName="flex h-8 w-8 items-center justify-center rounded-full text-[#26291f] transition hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40 aria-pressed:bg-[#c8704d] aria-pressed:text-white motion-safe:aria-pressed:animate-pulse"
+              label="Buscar por voz"
+              onTranscript={(transcript) => {
+                setSearch(transcript)
+                setSearchOpen(true)
+              }}
+            >
+              <MicIcon />
+            </VoiceSearchButton>
           </div>
 
           {searchOpen && query && (

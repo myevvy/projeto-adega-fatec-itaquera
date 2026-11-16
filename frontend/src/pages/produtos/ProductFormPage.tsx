@@ -4,6 +4,7 @@ import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductFormPageProps = {
+  categories: string[]
   onNavigate: (path: AppPath) => void
   onSave: (product: Product, image?: File) => Promise<void>
   product?: Product
@@ -11,6 +12,7 @@ type ProductFormPageProps = {
 }
 
 function ProductFormPage({
+  categories,
   onNavigate,
   onSave,
   product,
@@ -42,9 +44,12 @@ function ProductFormPage({
     setIsSaving(true)
     try {
       await onSave({
-      ...form,
-      id: product?.id ?? Date.now(),
-      active: product?.active ?? true,
+        ...form,
+        name: form.name.trim(),
+        category: form.category.trim(),
+        description: form.description.trim(),
+        id: product?.id ?? Date.now(),
+        active: product?.active ?? true,
       }, photo)
       setSaved(true)
     } catch (error) {
@@ -110,11 +115,20 @@ function ProductFormPage({
           <label>
             Categoria
             <input
+              list="product-categories"
               onChange={(event) => update('category', event.target.value)}
               placeholder="Ex: Tintos"
               required
               value={form.category}
             />
+            <datalist id="product-categories">
+              {categories.map((category) => (
+                <option key={category} value={category} />
+              ))}
+            </datalist>
+            <span>
+              Use uma categoria já cadastrada e ativa no sistema.
+            </span>
           </label>
           <label>
             Preço de venda

@@ -26,6 +26,7 @@ export type AppPath =
   | `fornecedores/${string}`
   | `fornecedores/${string}/editar`
   | 'configuracoes'
+  | 'configuracoes/usuarios'
   | 'usuarios'
   | 'perfil'
 
