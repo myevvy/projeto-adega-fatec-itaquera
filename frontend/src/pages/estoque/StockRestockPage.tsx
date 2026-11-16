@@ -7,12 +7,103 @@ import type { PurchaseRecord } from '../../types/financeiro'
 import type { Product } from '../../types/produto'
 import type { Supplier } from '../../types/fornecedor'
 
+const LOW_STOCK_LIMIT = 10
+
 type StockRestockPageProps = {
   onNavigate: (path: AppPath) => void
   onSavePurchase: (purchase: PurchaseRecord) => Promise<void>
   products: Product[]
   suppliers: Supplier[]
   setupData: SetupData
+}
+
+type Receipt = {
+  productName: string
+  category: string
+  previousStock: number
+  newStock: number
+  minimumStock: number
+  quantity: number
+  supplierName: string
+  date: string
+  unitCost: number | null
+  note: string
+}
+
+const formatDate = (iso: string) => iso.split('-').reverse().join('/')
+const formatCurrency = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+/* ---------- Classes reutilizáveis ---------- */
+const labelClass = 'block text-sm text-[#6f6b60]'
+const fieldClass =
+  'mt-1.5 w-full rounded-xl border border-[#e3dfd2] bg-white px-4 py-3 text-[15px] text-[#26291f] placeholder:text-[#b4b0a3] outline-none transition focus:border-[#3b4a2b] focus:ring-2 focus:ring-[#3b4a2b]/20 disabled:bg-[#fbfaf6]'
+const stepperButtonClass =
+  'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#e3dfd2] bg-white text-2xl leading-none text-[#26291f] transition hover:bg-[#f1efe6] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white'
+
+/* ---------- Ícones ---------- */
+function ArrowLeftIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function CheckCircleIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  )
+}
+
+function AlertIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M12 3 2 20h20L12 3Z" />
+      <path d="M12 10v4M12 17.5v.01" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M8 3v4M16 3v4M3.5 10h17" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+/* ---------- Selo de status ---------- */
+function StatusBadge({ low }: { low: boolean }) {
+  return low ? (
+    <span className="shrink-0 rounded-md border border-[#e8743b] px-2 py-0.5 text-[11px] font-medium text-[#e8743b]">
+      Estoque Baixo
+    </span>
+  ) : (
+    <span className="shrink-0 rounded-full bg-[#dfe7d3] px-3 py-0.5 text-[11px] font-medium text-[#3b4a2b]">
+      Regular
+    </span>
+  )
 }
 
 function StockRestockPage({
@@ -43,6 +134,7 @@ function StockRestockPage({
   const resultingStock = (selectedProduct?.stock ?? 0) + restockQuantity
   const reachesMinimum =
     !!selectedProduct && resultingStock >= selectedProduct.minimumStock
+  const isLowStock = !!selectedProduct && resultingStock < LOW_STOCK_LIMIT
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
