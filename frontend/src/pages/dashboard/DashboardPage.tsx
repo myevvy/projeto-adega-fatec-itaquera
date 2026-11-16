@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import type { AppPath, SaleRecord, SetupData } from '../../types'
 import type { ExpenseRecord } from '../../types/financeiro'
