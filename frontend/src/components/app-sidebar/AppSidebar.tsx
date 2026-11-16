@@ -21,21 +21,6 @@ const iconBase = {
   viewBox: '0 0 24 24',
 }
 
-const navigationItems: {
-  label: string
-  page: AppPath
-  adminOnly?: boolean
-}[] = [
-  { label: 'Início', page: 'dashboard' as const },
-  { label: 'Vendas', page: 'vendas' as const },
-  { label: 'Estoque', page: 'estoque' as const },
-  { label: 'Financeiro', page: 'financeiro' as const },
-  { label: 'Fornecedores', page: 'fornecedores' as const },
-  { label: 'Compras', page: 'compras' as const },
-  { label: 'Relatórios', page: 'relatorios' as const },
-  { label: 'Usuários', page: 'usuarios' as const, adminOnly: true },
-]
-
 function HomeIcon({ active }: IconProps) {
   return (
     <svg {...iconBase} fill={active ? 'currentColor' : 'none'}>
