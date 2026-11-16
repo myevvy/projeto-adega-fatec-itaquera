@@ -10,11 +10,15 @@ import vendas from "./controllers/financeiro/vendas.js";
 import despesas from "./controllers/financeiro/despesa.js";
 import relatorios from "./controllers/financeiro/relatorios.js";
 import relatorioEstoque from "./controllers/estoque/relatorios.js";
-import notificacoes from "./controllers/notificacoes.js";
 import upload from "./middlewares/uploadProdutos.js";
 
-router.get("/usuarios", usuarios.getUsuarios);
-router.post("/cadastro", usuarios.cadastro);
+router.get(
+  "/usuarios",
+  autentica.autenticar,
+  verificaAdm,
+  usuarios.getUsuarios,
+);
+router.post("/cadastro", autentica.autenticar, verificaAdm, usuarios.cadastro);
 router.post("/login", usuarios.login);
 router.post("/logout", autentica.autenticar, usuarios.logout);
 router.put("/usuarios/:id", autentica.autenticar, usuarios.putUsuario);
@@ -25,13 +29,17 @@ router.delete(
   usuarios.desativarUsuario,
 );
 
-router.get("/fornecedores", fornecedores.getFornecedores);
-router.post("/fornecedores", fornecedores.postFornecedores);
-router.put("/fornecedores/:id", fornecedores.putFornecedor);
-router.delete("/fornecedores/:id", fornecedores.deleteFornecedor);
+router.get("/fornecedores", autentica.autenticar, fornecedores.getFornecedores);
+router.post("/fornecedores", autentica.autenticar, fornecedores.postFornecedores);
+router.put("/fornecedores/:id", autentica.autenticar, fornecedores.putFornecedor);
+router.delete("/fornecedores/:id", autentica.autenticar, fornecedores.deleteFornecedor);
 
-router.get("/compras", compras.getCompras);
-router.get("/compras/fornecedor/:id", compras.getComprasFornecedor);
+router.get("/compras", autentica.autenticar, compras.getCompras);
+router.get(
+  "/compras/fornecedor/:id",
+  autentica.autenticar,
+  compras.getComprasFornecedor,
+);
 router.post("/compras", autentica.autenticar, compras.postCompra);
 router.delete("/compras/:id", autentica.autenticar, compras.cancelarCompra);
 
@@ -44,7 +52,7 @@ router.get(
 router.post("/vendas", autentica.autenticar, vendas.postVendas);
 router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 
-router.get("/despesas", despesas.getDespesas);
+router.get("/despesas", autentica.autenticar, despesas.getDespesas);
 router.post("/despesas", autentica.autenticar, despesas.postDespesas);
 router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
 
@@ -67,29 +75,13 @@ router.get(
   relatorios.getRelatorioDespesas,
 );
 
-router.get(
-  "/notificacoes",
-  autentica.autenticar,
-  notificacoes.getNotificacoes,
-);
-router.get(
-  "/notificacoes/nao-lidas/total",
-  autentica.autenticar,
-  notificacoes.getTotalNaoLidas,
-);
-router.patch(
-  "/notificacoes/:id/lida",
-  autentica.autenticar,
-  notificacoes.marcarComoLida,
-);
-
-router.get("/produtos", produtos.getProdutos);
-router.get("/produtos/inativos", produtos.getProdutosInativos);
-router.get("/produtos/historico/:id", produtos.getHistoricoPreco);
-router.get("/produtos/alertas", produtos.getEstoqueAlertas);
+router.get("/produtos", autentica.autenticar, produtos.getProdutos);
+router.get("/produtos/inativos", autentica.autenticar, produtos.getProdutosInativos);
+router.get("/produtos/historico/:id", autentica.autenticar, produtos.getHistoricoPreco);
+router.get("/produtos/alertas", autentica.autenticar, produtos.getEstoqueAlertas);
 router.post("/produtos", upload.single("imagem"), produtos.postProdutos);
 router.put("/produtos/:id", autentica.autenticar, produtos.putProdutos);
-router.put("/produtos/:id", produtos.alterarQuantidade);
+router.put("/produtos/quantidade/:id", autentica.autenticar, produtos.alterarQuantidade);
 router.delete("/produtos/:id", autentica.autenticar, produtos.deleteProdutos);
 router.patch("/produtos/:id", autentica.autenticar, produtos.reativarProduto);
 

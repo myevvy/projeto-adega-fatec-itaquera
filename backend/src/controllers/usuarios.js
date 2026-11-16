@@ -23,6 +23,7 @@ const getUsuarios = async (req, res) => {
 
 const cadastro = async (req, res) => {
   try {
+    // O perfil_id é fornecido pelo próprio front-end
     const { perfil_id, nome, email, telefone, senha } = req.body;
 
     if (!perfil_id || !nome || !email || !senha) {

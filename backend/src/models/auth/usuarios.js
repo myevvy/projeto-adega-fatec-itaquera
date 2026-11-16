@@ -18,8 +18,8 @@ const getUsuario = async (email) => {
     return rows;
   }
   const [rows] = await db.query(
-    `SELECT ${CAMPOS_PUBLICOS}, u.senha_hash ${FROM}
-     WHERE u.email = ? AND u.ativo = 1`,
+    `SELECT ${CAMPOS_PUBLICOS} ${FROM}
+   WHERE u.email = ? AND u.ativo = 1`,
     [email],
   );
 
@@ -44,7 +44,17 @@ const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
 };
 
 const putUsuario = async (
-  id, nome, email, senha_hash, _end, _cep, tel, aniversario, _sobre, cargo, tipo_logado
+  id,
+  nome,
+  email,
+  senha_hash,
+  _end,
+  _cep,
+  tel,
+  aniversario,
+  _sobre,
+  cargo,
+  tipo_logado,
 ) => {
   const vazio = (v) => (v === "" || v === undefined ? null : v);
 
@@ -67,8 +77,12 @@ const putUsuario = async (
   if (chaves.length === 0) return false;
 
   if (email !== undefined && email !== null) {
-    const [outro] = await db.query("SELECT id FROM usuario WHERE email = ? AND id <> ?", [email, id]);
-    if (outro.length > 0) throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
+    const [outro] = await db.query(
+      "SELECT id FROM usuario WHERE email = ? AND id <> ?",
+      [email, id],
+    );
+    if (outro.length > 0)
+      throw erroNegocio("EMAIL_EM_USO", "Esse e-mail já está em uso.");
   }
 
   const sets = chaves.map((k) => `${k} = ?`).join(", ");
@@ -77,7 +91,6 @@ const putUsuario = async (
   await db.query(`UPDATE usuario SET ${sets} WHERE id = ?`, valores);
   return true;
 };
-
 
 const alterarStatus = async (id, status) => {
   const ativo = status === 1;

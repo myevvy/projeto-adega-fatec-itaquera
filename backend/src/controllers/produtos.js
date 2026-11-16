@@ -62,6 +62,7 @@ const postProdutos = async (req, res) => {
       estoque,
       qntMinima,
       desc,
+      imagem
     });
 
     return res.status(201).json({
