@@ -460,12 +460,15 @@ function AppRoutes({
       <Route
         path="/financeiro/despesas/relatorio"
         element={
-          <ExpenseReportPage
-            expenses={expenses}
-            onCancelExpense={handleCancelExpense}
-            onNavigate={navigateTo}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <ExpenseReportPage
+              onCancelExpense={handleCancelExpense}
+              onNavigate={navigateTo}
+              setupData={setupData}
+            />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
         }
       />
       <Route
@@ -482,11 +485,11 @@ function AppRoutes({
       <Route
         path="/vendas/relatorio"
         element={
-          <SalesReportPage
-            onNavigate={navigateTo}
-            sales={sales}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <SalesReportPage onNavigate={navigateTo} setupData={setupData} />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
         }
       />
       <Route
@@ -536,11 +539,11 @@ function AppRoutes({
       <Route
         path="/estoque/relatorio"
         element={
-          <StockReportPage
-            onNavigate={navigateTo}
-            products={products}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <StockReportPage onNavigate={navigateTo} setupData={setupData} />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
         }
       />
       <Route
@@ -687,7 +690,13 @@ function AppRoutes({
       />
       <Route
         path="/relatorios"
-        element={<ReportsPage onNavigate={navigateTo} setupData={setupData} />}
+        element={
+          isAdministrator ? (
+            <ReportsPage onNavigate={navigateTo} setupData={setupData} />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
+        }
       />
       <Route
         path="/compras"

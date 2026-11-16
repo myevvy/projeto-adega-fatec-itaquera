@@ -85,7 +85,7 @@ Os arrays de gráficos contêm somente agrupamentos existentes no banco para o p
 `GET /relatorios/estoque` exige autenticação e perfil de administrador. O relatório representa a posição atual do estoque e inclui somente produtos ativos.
 
 - `resumo`: quantidade de produtos cadastrados, unidades em estoque, valor total calculado pelo custo de aquisição atual e quantidade de produtos em alerta.
-- `alertas`: produtos zerados ou abaixo do estoque mínimo, ordenados primeiro pelos níveis mais críticos.
+- `alertas`: produtos zerados ou com estoque igual ou abaixo do mínimo, ordenados primeiro pelos níveis mais críticos.
 - `produtos`: dados atuais de estoque por produto, úteis para tabelas e exportação.
 - `estoquePorCategoria`: agrupamento por categoria, pronto para gráficos.
 

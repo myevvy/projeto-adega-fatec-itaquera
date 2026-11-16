@@ -7,7 +7,7 @@ const obterResumoEstoque = async () => {
             COALESCE(SUM(p.quantidade_estoque * p.custo_aquisicao), 0) AS valorTotalEmEstoque,
             COALESCE(SUM(
               CASE
-                WHEN p.quantidade_estoque = 0 OR p.quantidade_estoque < p.quantidade_minima
+                WHEN p.quantidade_estoque <= p.quantidade_minima
                 THEN 1 ELSE 0
               END
             ), 0) AS produtosEmAlerta
@@ -33,7 +33,7 @@ const obterProdutosEstoque = async () => {
             p.quantidade_estoque * p.custo_aquisicao AS valorEmEstoque,
             CASE
               WHEN p.quantidade_estoque = 0 THEN 'ZERADO'
-              WHEN p.quantidade_estoque < p.quantidade_minima THEN 'BAIXO'
+              WHEN p.quantidade_estoque <= p.quantidade_minima THEN 'BAIXO'
               ELSE 'OK'
             END AS statusEstoque
        FROM produto p
@@ -42,7 +42,7 @@ const obterProdutosEstoque = async () => {
       ORDER BY
         CASE
           WHEN p.quantidade_estoque = 0 THEN 0
-          WHEN p.quantidade_estoque < p.quantidade_minima THEN 1
+          WHEN p.quantidade_estoque <= p.quantidade_minima THEN 1
           ELSE 2
         END,
         p.quantidade_estoque ASC,

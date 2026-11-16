@@ -121,7 +121,7 @@ const mainItems: NavItem[] = [
 const moreItems: NavItem[] = [
   { label: 'Fornecedores', page: 'fornecedores' as const, icon: () => <TruckIcon /> },
   { label: 'Compras', page: 'compras' as const, icon: () => <CartIcon /> },
-  { label: 'Relatórios', page: 'relatorios' as const, icon: () => <ReportIcon /> },
+  { label: 'Relatórios', page: 'relatorios' as const, icon: () => <ReportIcon />, adminOnly: true },
   { label: 'Configurações', page: 'configuracoes' as const, icon: () => <GearIcon />, adminOnly: true },
 ]
  
