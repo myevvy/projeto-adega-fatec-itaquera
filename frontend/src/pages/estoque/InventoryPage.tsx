@@ -87,7 +87,6 @@ function InventoryPage({ onNavigate, products, setupData }: InventoryPageProps) 
           type="button">
              <span aria-hidden="true">+</span> Entrada
           </button>
-          </div>
           <button 
           className="w-full cursor-pointer rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-[#1c1f1a] hover:bg-gray-50"
           onClick={() => onNavigate('estoque/relatorio')} 
