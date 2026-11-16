@@ -3,6 +3,12 @@ import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, ExpenseRecord, SetupData } from '../../types'
 
+function getLocalDateInputValue(date: Date) {
+  const localDate = new Date(date)
+  localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset())
+  return localDate.toISOString().slice(0, 10)
+}
+
 type ExpenseFormPageProps = {
   categories: { id: number; name: string }[]
   onNavigate: (path: AppPath) => void
@@ -19,7 +25,7 @@ function ExpenseFormPage({
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
+  const [paidAt, setPaidAt] = useState(getLocalDateInputValue(new Date()))
   const [saved, setSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -128,7 +134,7 @@ function ExpenseFormPage({
         {error && <p role="alert">{error}</p>}
         {saved && (
           <StatusToast
-            message="A despesa foi salva no financeiro local."
+            message="A despesa foi salva no banco de dados."
             onClose={() => setSaved(false)}
             title="Despesa registrada com sucesso!"
           />

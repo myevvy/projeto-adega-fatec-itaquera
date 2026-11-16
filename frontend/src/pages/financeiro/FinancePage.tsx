@@ -19,6 +19,14 @@ type FinancePageProps = {
 const formatCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+function sumMoney(values: number[]) {
+  const cents = values.reduce(
+    (sum, value) => sum + Math.round(value * 100),
+    0,
+  )
+  return cents / 100
+}
+
 function isWithinPeriod(date: Date, period: SalesPeriod) {
   const now = new Date()
   if (period === 'today') {
@@ -54,20 +62,21 @@ function FinancePage({
       ),
     [expenses, period],
   )
-  const revenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0)
-  const expenseTotal = filteredExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0,
+  const revenue = sumMoney(filteredSales.map((sale) => sale.total))
+  const expenseTotal = sumMoney(
+    filteredExpenses.map((expense) => expense.amount),
   )
-  const profit = revenue - expenseTotal
+  const resultAfterExpenses = revenue - expenseTotal
   const averageTicket = filteredSales.length
     ? revenue / filteredSales.length
     : 0
   const expenseGroups = [...new Set(filteredExpenses.map((expense) => expense.category))]
   const categories = expenseGroups.map((category) => {
-    const amount = filteredExpenses
-      .filter((expense) => expense.category === category)
-      .reduce((sum, expense) => sum + expense.amount, 0)
+    const amount = sumMoney(
+      filteredExpenses
+        .filter((expense) => expense.category === category)
+        .map((expense) => expense.amount),
+    )
     return { category, amount }
   })
   const maxAmount = Math.max(
@@ -88,8 +97,8 @@ function FinancePage({
     )
     return {
       label: day.toLocaleDateString('pt-BR', { weekday: 'short' }),
-      revenue: salesForDay.reduce((sum, sale) => sum + sale.total, 0),
-      expense: expensesForDay.reduce((sum, expense) => sum + expense.amount, 0),
+      revenue: sumMoney(salesForDay.map((sale) => sale.total)),
+      expense: sumMoney(expensesForDay.map((expense) => expense.amount)),
     }
   })
   const movements = [
@@ -129,8 +138,12 @@ function FinancePage({
             <strong>{formatCurrency(expenseTotal)}</strong>
           </article>
           <article>
-            <p>Lucro bruto</p>
-            <strong>{formatCurrency(profit)}</strong>
+            <p>Resultado após despesas</p>
+            <strong>{formatCurrency(resultAfterExpenses)}</strong>
+            <small>
+              Não inclui o custo dos produtos vendidos; esse dado não é fornecido
+              pela API nesta tela.
+            </small>
           </article>
           <article>
             <p>Ticket médio</p>
