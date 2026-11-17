@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, SaleRecord, SetupData } from '../../types'
 import type { ExpenseRecord } from '../../types/financeiro'
 import type { Product } from '../../types/produto'
@@ -11,6 +10,28 @@ type DashboardPageProps = {
   products: Product[]
   sales: SaleRecord[]
   setupData: SetupData
+}
+
+type SpeechRecognitionLike = {
+  lang: string
+  interimResults: boolean
+  onresult:
+    | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
+    | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike
+
+const getSpeechRecognition = (): SpeechRecognitionCtor | undefined => {
+  if (typeof window === 'undefined') return undefined
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor
+    webkitSpeechRecognition?: SpeechRecognitionCtor
+  }
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition
 }
 
 const formatCurrency = (value: number) =>
@@ -65,7 +86,7 @@ const iconProps = {
 
 function SearchIcon() {
   return (
-    <svg {...iconProps} className="h-5 w-5">
+    <svg {...iconProps} className="h-5 w-5 shrink-0">
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
     </svg>
@@ -92,7 +113,7 @@ function BellIcon() {
 
 function PlusIcon() {
   return (
-    <svg {...iconProps} className="h-6 w-6" strokeWidth={2}>
+    <svg {...iconProps} className="h-6 w-6 shrink-0" strokeWidth={2}>
       <path d="M12 5v14M5 12h14" />
     </svg>
   )
@@ -118,7 +139,7 @@ function StockAlertCard({
       onClick={onClick}
       type="button"
     >
-      <span>
+      <span className="min-w-0">
         <span
           className={`block text-sm ${
             critical && active ? 'text-[#c8704d]' : 'text-[#4b4d42]'
@@ -143,6 +164,24 @@ function StockAlertCard({
   )
 }
 
+function NewSaleButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      className="flex w-full items-center gap-4 rounded-2xl bg-[#1c1d18] px-5 py-4 text-left text-white shadow-[0_8px_20px_rgba(28,29,24,0.25)] transition hover:bg-black active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b] focus-visible:ring-offset-2"
+      onClick={onClick}
+      type="button"
+    >
+      <PlusIcon />
+      <span>
+        <strong className="block text-base font-semibold">Nova Venda</strong>
+        <span className="block text-xs text-white/60">
+          Registrar em poucos segundos
+        </span>
+      </span>
+    </button>
+  )
+}
+
 function DashboardPage({
   onNavigate,
   expenses,
@@ -153,13 +192,18 @@ function DashboardPage({
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [listening, setListening] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const SpeechCtor = getSpeechRecognition()
 
   useClickOutside(searchRef, searchOpen, () => setSearchOpen(false))
   useClickOutside(notificationsRef, notificationsOpen, () =>
     setNotificationsOpen(false),
   )
+  useEffect(() => () => recognitionRef.current?.stop(), [])
+
   const adminName = setupData.adminName || 'Marcos'
   const businessName = setupData.businessName || 'Adega Bom Sabor'
 
@@ -174,8 +218,7 @@ function DashboardPage({
   const expensesToday = expenses.filter(
     (expense) =>
       expense.active !== false &&
-      new Date(`${expense.paidAt}T12:00:00`).toDateString() ===
-        new Date().toDateString(),
+      new Date(`${expense.paidAt}T12:00:00`).toDateString() === todayString,
   )
 
   const expensesTotal = expensesToday.reduce(
@@ -189,9 +232,9 @@ function DashboardPage({
   const lowStock = activeProducts.filter(
     (product) => product.stock > 0 && product.stock <= product.minimumStock,
   )
-   const alertsCount = outOfStock.length + lowStock.length
+  const alertsCount = outOfStock.length + lowStock.length
 
- const query = normalize(search.trim())
+  const query = normalize(search.trim())
   const searchResults = query
     ? activeProducts
         .filter(
@@ -201,6 +244,27 @@ function DashboardPage({
         )
         .slice(0, 5)
     : []
+
+  const toggleVoiceSearch = () => {
+    if (!SpeechCtor) return
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    const recognition = new SpeechCtor()
+    recognition.lang = 'pt-BR'
+    recognition.interimResults = false
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? ''
+      setSearch(transcript)
+      setSearchOpen(true)
+    }
+    recognition.onend = () => setListening(false)
+    recognition.onerror = () => setListening(false)
+    recognitionRef.current = recognition
+    setListening(true)
+    recognition.start()
+  }
 
   const formatSaleDate = (createdAt: SaleRecord['createdAt']) => {
     const date = new Date(createdAt)
@@ -218,6 +282,8 @@ function DashboardPage({
     return `${day}, ${time}`
   }
 
+  const goNewSale = () => onNavigate('nova-venda')
+
   return (
     <main className="min-h-screen bg-[#faf8f2] text-[#26291f] lg:flex">
       <AppSidebar
@@ -226,24 +292,26 @@ function DashboardPage({
         userName={setupData.adminName}
       />
 
-      <section className="mx-auto flex w-full max-w-md flex-col px-5 pb-28 pt-8 lg:flex-1 lg:pb-10">
+      <section className="mx-auto flex w-full min-w-0 max-w-md flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 min-[380px]:px-5 min-[380px]:pt-8 sm:max-w-2xl sm:px-6 md:pt-10 lg:max-w-6xl lg:flex-1 lg:px-8 lg:pb-10 xl:px-12">
         <header className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-             <span
+          <div className="flex min-w-0 items-center gap-3">
+            <span
               aria-hidden="true"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ebe8dd] text-base font-medium"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ebe8dd] text-base font-medium"
             >
               {adminName.charAt(0).toUpperCase()}
             </span>
-            <div>
-              <p className="text-xs text-[#6f6b60]">{businessName}</p>
-              <h1 className="text-lg font-bold leading-tight">
+            <div className="min-w-0">
+              <p className="truncate text-xs text-[#6f6b60] sm:text-sm">
+                {businessName}
+              </p>
+              <h1 className="truncate text-lg font-bold leading-tight sm:text-xl lg:text-2xl">
                 Olá, {adminName}
               </h1>
             </div>
           </div>
 
-  <div className="relative" ref={notificationsRef}>
+          <div className="relative shrink-0" ref={notificationsRef}>
             <button
               aria-expanded={notificationsOpen}
               aria-label="Notificações"
@@ -259,9 +327,9 @@ function DashboardPage({
 
             {notificationsOpen && (
               <div
-                className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-[#e3dfd2] bg-white p-4 shadow-[0_8px_24px_rgba(38,41,31,0.12)]"
-                role="dialog"
                 aria-label="Notificações"
+                className="absolute right-0 top-12 z-30 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-[#e3dfd2] bg-white p-4 shadow-[0_8px_24px_rgba(38,41,31,0.12)]"
+                role="dialog"
               >
                 {alertsCount === 0 ? (
                   <p className="text-sm text-[#6f6b60]">
@@ -306,8 +374,7 @@ function DashboardPage({
           </div>
         </header>
 
-        {/* Busca */}
-        <div className="relative mt-5" ref={searchRef}>
+        <div className="relative mt-5 lg:max-w-xl" ref={searchRef}>
           <label className="sr-only" htmlFor="dashboard-search">
             Buscar produto
           </label>
@@ -315,7 +382,7 @@ function DashboardPage({
             <SearchIcon />
             <input
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent text-[15px] text-[#26291f] outline-none placeholder:text-[#8a8678]"
+              className="min-w-0 flex-1 bg-transparent text-base text-[#26291f] outline-none placeholder:text-[#8a8678] sm:text-[15px]"
               id="dashboard-search"
               onChange={(event) => {
                 setSearch(event.target.value)
@@ -332,16 +399,21 @@ function DashboardPage({
               type="search"
               value={search}
             />
-            <VoiceSearchButton
-              buttonClassName="flex h-8 w-8 items-center justify-center rounded-full text-[#26291f] transition hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40 aria-pressed:bg-[#c8704d] aria-pressed:text-white motion-safe:aria-pressed:animate-pulse"
-              label="Buscar por voz"
-              onTranscript={(transcript) => {
-                setSearch(transcript)
-                setSearchOpen(true)
-              }}
-            >
-              <MicIcon />
-            </VoiceSearchButton>
+            {SpeechCtor && (
+              <button
+                aria-label={listening ? 'Parar busca por voz' : 'Buscar por voz'}
+                aria-pressed={listening}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40 ${
+                  listening
+                    ? 'bg-[#c8704d] text-white motion-safe:animate-pulse'
+                    : 'text-[#26291f] hover:bg-black/5'
+                }`}
+                onClick={toggleVoiceSearch}
+                type="button"
+              >
+                <MicIcon />
+              </button>
+            )}
           </div>
 
           {searchOpen && query && (
@@ -365,7 +437,7 @@ function DashboardPage({
                             <span className="block truncate text-sm font-medium">
                               {product.name}
                             </span>
-                            <span className="block text-xs text-[#6f6b60]">
+                            <span className="block truncate text-xs text-[#6f6b60]">
                               {product.category}
                             </span>
                           </span>
@@ -390,164 +462,156 @@ function DashboardPage({
           )}
         </div>
 
-        {/* Vendas de hoje */}
-        <section
-          aria-label="Vendas de hoje"
-          className="mt-5 rounded-2xl bg-[#3b4a2b] px-5 py-5 text-white"
-        >
-          <p className="text-sm text-white/70">Vendas de hoje</p>
-          <p className="mt-2 text-4xl font-bold tracking-tight">
-            {formatCurrency(revenueToday)}
-          </p>
-          <p className="mt-3 flex items-center gap-2 text-xs text-white/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#9cc177]" />
-            {pluralize(
-              todaySales.length,
-              'venda realizada',
-              'vendas realizadas',
-            )}
-          </p>
-        </section>
-
-        {/* Visão geral */}
-        <section aria-labelledby="daily-summary" className="mt-7">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold" id="daily-summary">
-              Visão geral
-            </h2>
-            <button
-              className="text-sm text-[#4b4d42] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40"
-              onClick={() => onNavigate('financeiro')}
-              type="button"
+        <div className="mt-5 grid gap-7 lg:mt-7 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-8">
+          <div className="min-w-0 space-y-7">
+            <section
+              aria-label="Vendas de hoje"
+              className="rounded-2xl bg-[#3b4a2b] px-5 py-5 text-white sm:px-6 sm:py-6"
             >
-              Ver relatório
-            </button>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div
-              className="rounded-2xl border border-[#e3dfd2] bg-white p-4"
-              title="Vendas menos despesas do dia; não inclui o custo dos produtos vendidos."
-            >
-              <p className="text-sm text-[#4b4d42]">Lucro bruto</p>
-              <p
-                className={`mt-2 text-2xl font-bold ${
-                  resultToday < 0 ? 'text-[#c8704d]' : ''
-                }`}
-              >
-                {formatCurrency(resultToday)}
+              <p className="text-sm text-white/70">Vendas de hoje</p>
+              <p className="mt-2 break-words text-3xl font-bold tracking-tight min-[380px]:text-4xl sm:text-5xl">
+                {formatCurrency(revenueToday)}
               </p>
-              <p className="mt-2 text-xs text-[#8a8678]">
-                Faturamento: {formatCurrency(revenueToday)}
+              <p className="mt-3 flex items-center gap-2 text-xs text-white/70 sm:text-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#9cc177]" />
+                {pluralize(
+                  todaySales.length,
+                  'venda realizada',
+                  'vendas realizadas',
+                )}
               </p>
-            </div>
-            <div className="rounded-2xl border border-[#e3dfd2] bg-white p-4">
-              <p className="text-sm text-[#4b4d42]">Despesas</p>
-              <p className="mt-2 text-2xl font-bold text-[#c8704d]">
-                {formatCurrency(expensesTotal)}
-              </p>
-              <p className="mt-2 text-xs text-[#8a8678]">No dia de hoje</p>
-            </div>
-          </div>
+            </section>
 
-          <div
-            aria-labelledby="stock-alerts"
-            className="mt-3 space-y-3"
-            role="group"
-          >
-            <h3 className="sr-only" id="stock-alerts">
-              Atenção ao estoque
-            </h3>
-            <StockAlertCard
-              count={lowStock.length}
-              onClick={() => onNavigate('estoque')}
-              title="Estoque baixo"
-            />
-            <StockAlertCard
-              count={outOfStock.length}
-              critical
-              onClick={() => onNavigate('estoque')}
-              title="Produto zerado"
-            />
-          </div>
-        </section>
+            <section aria-labelledby="daily-summary">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-bold sm:text-lg" id="daily-summary">
+                  Visão geral
+                </h2>
+                <button
+                  className="text-sm text-[#4b4d42] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40"
+                  onClick={() => onNavigate('financeiro')}
+                  type="button"
+                >
+                  Ver relatório
+                </button>
+              </div>
 
-        {/* Últimas vendas */}
-        <section aria-labelledby="recent-sales" className="mt-7">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold" id="recent-sales">
-              Últimas vendas
-            </h2>
-            <button
-              className="text-sm text-[#4b4d42] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40"
-              onClick={() => onNavigate('vendas')}
-              type="button"
-            >
-              Ver tudo
-            </button>
-          </div>
-
-          {completedSales.length > 0 ? (
-            <ul className="mt-3 divide-y divide-[#e3dfd2] overflow-hidden rounded-2xl border border-[#e3dfd2] bg-white">
-              {completedSales.slice(0, 3).map((sale, index) => {
-                const itemCount = sale.items.reduce(
-                  (count, item) => count + item.quantity,
-                  0,
-                )
-                return (
-                  <li
-                    className="flex items-center gap-3 px-4 py-4"
-                    key={sale.id}
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div
+                  className="min-w-0 rounded-2xl border border-[#e3dfd2] bg-white p-4"
+                  title="Vendas menos despesas do dia; não inclui o custo dos produtos vendidos."
+                >
+                  <p className="text-sm text-[#4b4d42]">Lucro bruto</p>
+                  <p
+                    className={`mt-2 break-words text-xl font-bold min-[380px]:text-2xl sm:text-3xl ${
+                      resultToday < 0 ? 'text-[#c8704d]' : ''
+                    }`}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ebe8dd] text-xs font-medium text-[#4b4d42]"
-                    >
-                      #{index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-semibold">
-                        Venda #{completedSales.length - index}
-                      </p>
-                      <p className="mt-0.5 text-xs text-[#6f6b60]">
-                        {formatSaleDate(sale.createdAt)} ·{' '}
-                        {sale.items.length
-                          ? pluralize(itemCount, 'item', 'itens')
-                          : 'Itens não detalhados'}{' '}
-                        · {formatPayment(sale.paymentMethod)}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-[15px] font-semibold">
-                      {formatCurrency(sale.total)}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="mt-3 rounded-2xl border border-dashed border-[#d6d1c0] bg-white px-4 py-6 text-center text-sm text-[#6f6b60]">
-              Nenhuma venda registrada. Crie uma nova venda para testar.
-            </p>
-          )}
-        </section>
+                    {formatCurrency(resultToday)}
+                  </p>
+                  <p className="mt-2 break-words text-xs text-[#8a8678]">
+                    Faturamento: {formatCurrency(revenueToday)}
+                  </p>
+                </div>
+                <div className="min-w-0 rounded-2xl border border-[#e3dfd2] bg-white p-4">
+                  <p className="text-sm text-[#4b4d42]">Despesas</p>
+                  <p className="mt-2 break-words text-xl font-bold text-[#c8704d] min-[380px]:text-2xl sm:text-3xl">
+                    {formatCurrency(expensesTotal)}
+                  </p>
+                  <p className="mt-2 text-xs text-[#8a8678]">No dia de hoje</p>
+                </div>
+              </div>
 
-        {/* Nova venda */}
-        <div className="sticky bottom-20 z-10 mt-8 lg:bottom-6">
-          <button
-            className="flex w-full items-center gap-4 rounded-2xl bg-[#1c1d18] px-5 py-4 text-left text-white shadow-[0_8px_20px_rgba(28,29,24,0.25)] transition hover:bg-black active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b] focus-visible:ring-offset-2"
-            onClick={() => onNavigate('nova-venda')}
-            type="button"
-          >
-            <PlusIcon />
-            <span>
-              <strong className="block text-base font-semibold">
-                Nova Venda
-              </strong>
-              <span className="block text-xs text-white/60">
-                Registrar em poucos segundos
-              </span>
-            </span>
-          </button>
+              <div
+                aria-labelledby="stock-alerts"
+                className="mt-3 grid gap-3 sm:grid-cols-2"
+                role="group"
+              >
+                <h3 className="sr-only" id="stock-alerts">
+                  Atenção ao estoque
+                </h3>
+                <StockAlertCard
+                  count={lowStock.length}
+                  onClick={() => onNavigate('estoque')}
+                  title="Estoque baixo"
+                />
+                <StockAlertCard
+                  count={outOfStock.length}
+                  critical
+                  onClick={() => onNavigate('estoque')}
+                  title="Produto zerado"
+                />
+              </div>
+            </section>
+          </div>
+          
+          <div className="min-w-0 space-y-7">
+            <div className="hidden lg:block">
+              <NewSaleButton onClick={goNewSale} />
+            </div>
+
+            <section aria-labelledby="recent-sales">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-bold sm:text-lg" id="recent-sales">
+                  Últimas vendas
+                </h2>
+                <button
+                  className="text-sm text-[#4b4d42] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b]/40"
+                  onClick={() => onNavigate('vendas')}
+                  type="button"
+                >
+                  Ver tudo
+                </button>
+              </div>
+
+              {completedSales.length > 0 ? (
+                <ul className="mt-3 divide-y divide-[#e3dfd2] overflow-hidden rounded-2xl border border-[#e3dfd2] bg-white">
+                  {completedSales.slice(0, 3).map((sale, index) => {
+                    const itemCount = sale.items.reduce(
+                      (count, item) => count + item.quantity,
+                      0,
+                    )
+                    return (
+                      <li
+                        className="flex items-center gap-3 px-4 py-4"
+                        key={sale.id}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ebe8dd] text-xs font-medium text-[#4b4d42]"
+                        >
+                          #{index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[15px] font-semibold">
+                            Venda #{completedSales.length - index}
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#6f6b60]">
+                            {formatSaleDate(sale.createdAt)} ·{' '}
+                            {sale.items.length
+                              ? pluralize(itemCount, 'item', 'itens')
+                              : 'Itens não detalhados'}{' '}
+                            · {formatPayment(sale.paymentMethod)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[15px] font-semibold">
+                          {formatCurrency(sale.total)}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-3 rounded-2xl border border-dashed border-[#d6d1c0] bg-white px-4 py-6 text-center text-sm text-[#6f6b60]">
+                  Nenhuma venda registrada. Crie uma nova venda para testar.
+                </p>
+              )}
+            </section>
+          </div>
+        </div>
+
+        <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 mt-8 sm:mx-auto sm:w-full sm:max-w-md lg:hidden">
+          <NewSaleButton onClick={goNewSale} />
         </div>
       </section>
     </main>
