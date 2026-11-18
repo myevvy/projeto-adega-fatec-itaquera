@@ -32,6 +32,14 @@ const cadastro = async (req, res) => {
       });
     }
 
+    const perfilValido = await usuarioModel.verificaPerfil(perfil_id);
+
+    if (!perfilValido) {
+      return res.status(400).json({
+        mensagem: "Perfil inválido.",
+      });
+    }
+
     const usuarioExiste = await usuarioModel.getUsuario(email);
 
     if (usuarioExiste) {

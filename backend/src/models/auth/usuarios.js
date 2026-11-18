@@ -44,6 +44,14 @@ const getUsuarioID = async (id) => {
   return rows[0] || null;
 };
 
+const verificaPerfil = async (id) => {
+  const [rows] = await db.query(
+    "SELECT id FROM perfil WHERE id = ?",
+    [id]
+  );
+  return rows[0] || null;
+};
+
 const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
   const [result] = await db.query(
     `INSERT INTO usuario (perfil_id, nome, email, telefone, senha_hash)
@@ -132,4 +140,5 @@ export default {
   postUsuario,
   putUsuario,
   alterarStatus,
+  verificaPerfil,
 };
