@@ -21,7 +21,6 @@ const inputClass =
 type SpeechRecognitionLike = {
   lang: string
   interimResults: boolean
-  onstart: (() => void) | null
   onend: (() => void) | null
   onresult:
     | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
@@ -29,14 +28,12 @@ type SpeechRecognitionLike = {
   start: () => void
 }
 
-type SpeechWindow = Window & {
-  SpeechRecognition?: new () => SpeechRecognitionLike
-  webkitSpeechRecognition?: new () => SpeechRecognitionLike
-}
-
 const getRecognition = () => {
   if (typeof window === 'undefined') return undefined
-  const speechWindow = window as SpeechWindow
+  const speechWindow = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike
+  }
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
 }
 
@@ -114,12 +111,12 @@ function ProductFormPage({
     const recognition = new Recognition()
     recognition.lang = 'pt-BR'
     recognition.interimResults = false
-    recognition.onstart = () => setListening(field)
     recognition.onend = () => setListening(null)
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript
       setForm((current) => ({ ...current, [field]: `${current[field]} ${text}`.trim() }))
     }
+    setListening(field)
     recognition.start()
   }
 
