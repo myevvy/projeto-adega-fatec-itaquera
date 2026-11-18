@@ -30,17 +30,26 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ vars.DB_NAME }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         run: |
           : "${DB_HOST:?DB_HOST repository variable is required}"
           : "${DB_PORT:?DB_PORT repository variable is required}"
           : "${DB_USER:?DB_USER repository secret is required}"
           : "${DB_PASSWORD:?DB_PASSWORD repository secret is required}"
           : "${DB_NAME:?DB_NAME repository variable is required}"
+          : "${FIREBASE_SERVICE_ACCOUNT:?FIREBASE_SERVICE_ACCOUNT repository secret is required}"
+          : "${FIREBASE_API_KEY:?VITE_FIREBASE_API_KEY repository secret is required}"
           resource_group=$(az webapp list --query "[?name=='adega-bom-sabor'].resourceGroup | [0]" --output tsv)
           if [ -z "$resource_group" ]; then
             echo "Azure Web App adega-bom-sabor was not found or is not accessible."
             exit 1
           fi
+          az webapp config set \
+            --resource-group "$resource_group" \
+            --name adega-bom-sabor \
+            --runtime "NODE:24" \
+            --output none
           az webapp config appsettings set \
             --resource-group "$resource_group" \
             --name adega-bom-sabor \
@@ -50,6 +59,8 @@ jobs:
               "DB_USER=$DB_USER" \
               "DB_PASSWORD=$DB_PASSWORD" \
               "DB_NAME=$DB_NAME" \
+              "FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT" \
+              "FIREBASE_API_KEY=$FIREBASE_API_KEY" \
               "SCM_DO_BUILD_DURING_DEPLOYMENT=true" \
             --output none
 

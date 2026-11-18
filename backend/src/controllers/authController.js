@@ -1,4 +1,6 @@
 // controllers/authController.js
+import '../../config/env.js';
+import bcrypt from 'bcrypt';
 import * as firebase from '../services/firebaseAuth.js';
 import User from '../models/auth/usuarios.js'; // Ajuste o caminho se necessário
 
@@ -44,4 +46,45 @@ async function esqueciSenha(req, res) {
   res.json({ mensagem: 'Se o e-mail estiver cadastrado, enviamos o link de recuperação.' });
 }
 
-export default { register, login, esqueciSenha };
+async function redefinirSenha(req, res) {
+  const { oobCode, senha } = req.body;
+  if (!oobCode || !senha) {
+    return res.status(400).json({ mensagem: 'Link ou senha inválidos.' });
+  }
+
+  try {
+    const verificacao = await firebase.verificarRecuperacaoSenha(oobCode);
+    if (!verificacao.email) {
+      return res.status(400).json({ mensagem: 'O link expirou ou é inválido.' });
+    }
+
+    const usuario = await User.getUsuarioPorEmail(verificacao.email);
+    if (!usuario) {
+      return res.status(400).json({ mensagem: 'O link expirou ou é inválido.' });
+    }
+
+    await firebase.redefinirSenha(oobCode, senha);
+    const senhaHash = await bcrypt.hash(senha, 10);
+    const atualizado = await User.atualizarSenha(usuario.id, senhaHash);
+    if (!atualizado) {
+      throw new Error('A senha do usuário não foi atualizada no banco de dados.');
+    }
+
+    return res.status(200).json({ mensagem: 'Senha redefinida com sucesso.' });
+  } catch (err) {
+    if (
+      err.codigo === 'INVALID_OOB_CODE' ||
+      err.codigo === 'EXPIRED_OOB_CODE'
+    ) {
+      return res.status(400).json({ mensagem: 'O link expirou ou é inválido.' });
+    }
+    if (err.codigo?.startsWith('WEAK_PASSWORD')) {
+      return res.status(400).json({ mensagem: 'A senha não atende aos requisitos do Firebase.' });
+    }
+
+    console.error('Erro ao redefinir senha:', err.codigo || err.message);
+    return res.status(500).json({ mensagem: 'Não foi possível redefinir a senha.' });
+  }
+}
+
+export default { register, login, esqueciSenha, redefinirSenha };
