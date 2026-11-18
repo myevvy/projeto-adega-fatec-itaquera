@@ -10,8 +10,13 @@ const FROM = "FROM usuario u JOIN perfil p ON p.id = u.perfil_id";
 
 const getUsuarioLogin = async (email) => {
   const [rows] = await db.query(
-    `SELECT ${CAMPOS_PUBLICOS}, u.senha_hash ${FROM}
-     WHERE u.email = ?`,
+    `SELECT 
+      ${CAMPOS_PUBLICOS}, 
+      u.senha_hash,
+      u.tentativas_falhas,
+      u.bloqueado_ate
+    ${FROM}
+    WHERE u.email = ?`,
     [email],
   );
 
@@ -50,6 +55,16 @@ const verificaPerfil = async (id) => {
     [id]
   );
   return rows[0] || null;
+};
+
+const atualizarTentativasLogin = async (id, tentativas, bloqueadoAte) => {
+  const sql = `
+    UPDATE usuario
+    SET tentativas_falhas = ?, bloqueado_ate = ?
+    WHERE id = ?
+  `;
+
+  await db.execute(sql, [tentativas, bloqueadoAte, id]);
 };
 
 const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
@@ -138,6 +153,7 @@ export default {
   getUsuarioID,
   getUsuarioLogin,
   postUsuario,
+  atualizarTentativasLogin,
   putUsuario,
   alterarStatus,
   verificaPerfil,

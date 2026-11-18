@@ -91,7 +91,7 @@ const login = async (req, res) => {
 
     if (!usuario) {
       return res.status(404).json({
-        mensagem: "Usuário não encontrado.",
+        mensagem: "Usuário ou senha incorretos.",
       });
     }
 
@@ -101,13 +101,61 @@ const login = async (req, res) => {
       });
     }
 
-    const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
+    if (usuario.bloqueado_ate) {
+      const agora = new Date();
+      const bloqueadoAte = new Date(usuario.bloqueado_ate);
+
+      if (agora < bloqueadoAte) {
+        const minutos = Math.ceil(
+          (bloqueadoAte - agora) / 60000
+        );
+
+        return res.status(429).json({
+          mensagem: `Muitas tentativas. Tente novamente em ${minutos} minutos.`,
+        });
+      }
+
+      await usuarioModel.atualizarTentativasLogin(
+        usuario.id, 0, null
+      );
+
+      usuario.tentativas_falhas = 0;
+      usuario.bloqueado_ate = null;
+    }
+
+    const senhaCorreta = await bcrypt.compare(
+      senha, usuario.senha_hash
+    );
 
     if (!senhaCorreta) {
+      const tentativas = usuario.tentativas_falhas + 1;
+
+      if (tentativas >= 3) {
+        const bloqueadoAte = new Date(
+          Date.now() + 10 * 60 * 1000
+        );
+
+        await usuarioModel.atualizarTentativasLogin(
+          usuario.id, tentativas, bloqueadoAte
+        );
+
+        return res.status(429).json({
+          mensagem: "Limite de tentativas atingido. Conta bloqueada por 10 minutos.",
+        });
+      }
+
+      await usuarioModel.atualizarTentativasLogin(
+        usuario.id, tentativas, null
+      );
+
       return res.status(401).json({
-        mensagem: "Senha incorreta.",
+        mensagem: `Usuário ou senha incorretos.`,
       });
     }
+
+    await usuarioModel.atualizarTentativasLogin(
+      usuario.id, 0, null
+    );
 
     const token = jwt.sign(
       {
@@ -119,7 +167,9 @@ const login = async (req, res) => {
       { expiresIn: "8h" },
     );
 
-    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const tokenHash = createHash("sha256")
+      .update(token)
+      .digest("hex");
 
     await sessaoModel.criarSessao(usuario.id, tokenHash);
 
@@ -133,6 +183,7 @@ const login = async (req, res) => {
         email: usuario.email,
       },
     });
+
   } catch (erro) {
     console.log("Erro no login:", erro.message);
 
@@ -141,6 +192,7 @@ const login = async (req, res) => {
     });
   }
 };
+
 
 const logout = async (req, res) => {
   try {
