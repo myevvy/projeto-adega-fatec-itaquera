@@ -168,7 +168,7 @@ function NewSaleButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       className="flex w-full items-center gap-4 rounded-2xl bg-[#1c1d18] px-5 py-4 text-left text-white shadow-[0_8px_20px_rgba(28,29,24,0.25)] transition hover:bg-black active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b4a2b] focus-visible:ring-offset-2"
-      onClick={() => onNavigate('nova-venda')}
+      onClick={onClick}
       type="button"
     >
       <PlusIcon />
