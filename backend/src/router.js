@@ -1,5 +1,5 @@
+// router.js
 import { Router } from "express";
-const router = Router();
 import produtos from "./controllers/produtos.js";
 import usuarios from "./controllers/usuarios.js";
 import fornecedores from "./controllers/fornecedores.js";
@@ -11,6 +11,13 @@ import despesas from "./controllers/financeiro/despesa.js";
 import relatorios from "./controllers/financeiro/relatorios.js";
 import relatorioEstoque from "./controllers/estoque/relatorios.js";
 import upload from "./middlewares/uploadProdutos.js";
+import authController from "./controllers/authController.js";
+
+const router = Router();
+
+router.post('/auth/register', authController.register);
+router.post('/auth/login', authController.login);
+router.post('/auth/esqueci-senha', authController.esqueciSenha);
 
 router.get(
   "/usuarios",
