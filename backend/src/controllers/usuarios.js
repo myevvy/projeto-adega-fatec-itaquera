@@ -4,6 +4,7 @@ import "../../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
+import admin from "../config/firebaseAdmin.js"; // <-- 1. Importado aqui
 
 const getUsuarios = async (req, res) => {
   try {
@@ -45,6 +46,25 @@ const cadastro = async (req, res) => {
     if (usuarioExiste) {
       return res.status(409).json({
         mensagem: "Esse usuário já existe.",
+      });
+    }
+
+    // 2. Cria o usuário no Firebase Auth primeiro (ou logo em seguida)
+    try {
+      await admin.auth().createUser({
+        email: email,
+        password: senha,
+        displayName: nome,
+      });
+    } catch (firebaseError) {
+      console.error("Erro ao criar no Firebase:", firebaseError.message);
+      if (firebaseError.code === "auth/email-already-exists") {
+        return res.status(409).json({
+          mensagem: "Este e-mail já está cadastrado no Firebase.",
+        });
+      }
+      return res.status(400).json({
+        mensagem: "Erro ao registrar usuário na autenticação.",
       });
     }
 
