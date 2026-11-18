@@ -3,6 +3,7 @@ import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductsPageProps = {
+  canManageProducts: boolean
   onNavigate: (path: AppPath) => void
   products: Product[]
   setupData: SetupData
@@ -85,7 +86,12 @@ function StockChip({ product }: { product: Product }) {
   )
 }
 
-function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
+function ProductsPage({
+  canManageProducts,
+  onNavigate,
+  products,
+  setupData,
+}: ProductsPageProps) {
   const [search, setSearch] = useState('')
 
   const query = normalize(search.trim())
@@ -126,14 +132,16 @@ function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
           >
             {pluralize(visibleProducts.length, 'item', 'itens')}
           </span>
-          <button
-            className={`hidden shrink-0 items-center gap-2 rounded-2xl bg-[#3b4a2b] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2f3b22] active:scale-[0.98] lg:flex ${focusRing}`}
-            onClick={goNewProduct}
-            type="button"
-          >
-            <PlusIcon />
-            Novo produto
-          </button>
+          {canManageProducts && (
+            <button
+              className={`hidden shrink-0 items-center gap-2 rounded-2xl bg-[#3b4a2b] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2f3b22] active:scale-[0.98] lg:flex ${focusRing}`}
+              onClick={goNewProduct}
+              type="button"
+            >
+              <PlusIcon />
+              Novo produto
+            </button>
+          )}
         </header>
 
         <div className="mt-5 lg:max-w-xl">
@@ -200,19 +208,23 @@ function ProductsPage({ onNavigate, products, setupData }: ProductsPageProps) {
           >
             {query
               ? `Nenhum produto encontrado para “${search.trim()}”.`
-              : 'Nenhum produto cadastrado. Toque em “Novo produto” para começar.'}
+              : canManageProducts
+                ? 'Nenhum produto cadastrado. Toque em “Novo produto” para começar.'
+                : 'Nenhum produto cadastrado.'}
           </p>
         )}
       </section>
 
-      <button
-        className={`fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-20 flex items-center gap-2 rounded-full bg-[#3b4a2b] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(38,41,31,0.25)] transition hover:bg-[#2f3b22] active:scale-[0.98] sm:right-6 lg:hidden ${focusRing}`}
-        onClick={goNewProduct}
-        type="button"
-      >
-        <PlusIcon />
-        Novo produto
-      </button>
+      {canManageProducts && (
+        <button
+          className={`fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-20 flex items-center gap-2 rounded-full bg-[#3b4a2b] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(38,41,31,0.25)] transition hover:bg-[#2f3b22] active:scale-[0.98] sm:right-6 lg:hidden ${focusRing}`}
+          onClick={goNewProduct}
+          type="button"
+        >
+          <PlusIcon />
+          Novo produto
+        </button>
+      )}
     </main>
   )
 }
