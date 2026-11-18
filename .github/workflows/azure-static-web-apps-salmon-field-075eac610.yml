@@ -41,6 +41,7 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         run: npm run build
       - name: Verify built frontend artifacts
         working-directory: frontend
