@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
-import SalesPeriodFilter, {
-  type DateRange,
-} from '../../components/sales-period-filter/SalesPeriodFilter'
+import SalesPeriodFilter from '../../components/sales-period-filter/SalesPeriodFilter'
 import type { AppPath, SaleRecord, SalesPeriod, SetupData } from '../../types'
 
 type SalesHistoryPageProps = {
@@ -223,7 +221,6 @@ function SaleDetails({
 
 function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesHistoryPageProps) {
   const [period, setPeriod] = useState<SalesPeriod>('7')
-  const [range, setRange] = useState<DateRange | null>(null)
   const [saleToCancel, setSaleToCancel] = useState<SaleRecord | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [cancelNotice, setCancelNotice] = useState<{ saleId: string; units: number } | null>(null)
@@ -236,28 +233,11 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
         (sale) => new Date(sale.createdAt).toDateString() === new Date().toDateString(),
       )
     }
-    if (period === 'custom') {
-      if (!range) return sales
-      const from = new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate())
-      const to = new Date(
-        range.to.getFullYear(),
-        range.to.getMonth(),
-        range.to.getDate(),
-        23,
-        59,
-        59,
-        999,
-      )
-      return sales.filter((sale) => {
-        const date = new Date(sale.createdAt)
-        return date >= from && date <= to
-      })
-    }
     const days = Number(period)
     const from = new Date()
     from.setDate(from.getDate() - days)
     return sales.filter((sale) => new Date(sale.createdAt) >= from)
-  }, [period, range, sales])
+  }, [period, sales])
   const selectedSale = selectedId ? (sales.find((sale) => sale.id === selectedId) ?? null) : null
   const activeSales = filteredSales.filter((sale) => sale.status !== 'CANCELADA')
   const total = activeSales.reduce((sum, sale) => sum + sale.total, 0)
@@ -328,8 +308,6 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
               <div>
                 <SalesPeriodFilter
                   onChange={setPeriod}
-                  onRangeChange={setRange}
-                  range={range}
                   value={period}
                 />
               </div>
