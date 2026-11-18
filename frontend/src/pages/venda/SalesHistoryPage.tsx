@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import SalesPeriodFilter from '../../components/sales-period-filter/SalesPeriodFilter'
+import { useAuth } from '../../hooks/useAuth'
+import { isAdministratorProfile } from '../../services/authService'
 import type { AppPath, SaleRecord, SalesPeriod, SetupData } from '../../types'
 
 type SalesHistoryPageProps = {
@@ -220,6 +222,8 @@ function SaleDetails({
 }
 
 function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesHistoryPageProps) {
+  const { session } = useAuth()
+  const isAdministrator = isAdministratorProfile(session?.usuario.perfil)
   const [period, setPeriod] = useState<SalesPeriod>('7')
   const [saleToCancel, setSaleToCancel] = useState<SaleRecord | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -337,13 +341,15 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
                   Vendas Recentes
                 </h2>
                 <div className="grid grid-cols-2 gap-2 sm:flex">
-                  <button
-                    className={btnGhost}
-                    onClick={() => onNavigate('vendas/relatorio')}
-                    type="button"
-                  >
-                    Relatório de vendas
-                  </button>
+                  {isAdministrator && (
+                    <button
+                      className={btnGhost}
+                      onClick={() => onNavigate('vendas/relatorio')}
+                      type="button"
+                    >
+                      Relatório de vendas
+                    </button>
+                  )}
                   <button
                     className={btnPrimary}
                     onClick={() => onNavigate('nova-venda')}
