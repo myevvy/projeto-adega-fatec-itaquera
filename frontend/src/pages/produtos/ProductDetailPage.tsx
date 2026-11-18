@@ -5,6 +5,7 @@ import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, Product, SetupData } from '../../types'
 
 type ProductDetailPageProps = {
+  canManageProducts: boolean
   onNavigate: (path: AppPath) => void
   onUpdate: (product: Product) => Promise<void>
   product: Product
@@ -42,6 +43,7 @@ function ArrowLeftIcon() {
 }
 
 function ProductDetailPage({
+  canManageProducts,
   onNavigate,
   onUpdate,
   product,
@@ -183,44 +185,48 @@ function ProductDetailPage({
             )}
 
             <div className="space-y-3">
-              {product.active && (
-                <button
-                  className={primaryButton}
-                  disabled={isBusy}
-                  onClick={() =>
-                    onNavigate(`estoque/ajustar?produto=${product.id}`)
-                  }
-                  type="button"
-                >
-                  Movimentar estoque
-                </button>
-              )}
-              <button
-                className={secondaryButton}
-                disabled={isBusy}
-                onClick={() => onNavigate(`produtos/${product.id}/editar`)}
-                type="button"
-              >
-                Editar produto
-              </button>
-              {product.active ? (
-                <button
-                  className={dangerButton}
-                  disabled={isBusy}
-                  onClick={() => setConfirmingDeactivation(true)}
-                  type="button"
-                >
-                  Inativar produto
-                </button>
-              ) : (
-                <button
-                  className={secondaryButton}
-                  disabled={isBusy}
-                  onClick={() => void changeActive(true)}
-                  type="button"
-                >
-                  Reativar produto
-                </button>
+              {canManageProducts && (
+                <>
+                  {product.active && (
+                    <button
+                      className={primaryButton}
+                      disabled={isBusy}
+                      onClick={() =>
+                        onNavigate(`estoque/ajustar?produto=${product.id}`)
+                      }
+                      type="button"
+                    >
+                      Movimentar estoque
+                    </button>
+                  )}
+                  <button
+                    className={secondaryButton}
+                    disabled={isBusy}
+                    onClick={() => onNavigate(`produtos/${product.id}/editar`)}
+                    type="button"
+                  >
+                    Editar produto
+                  </button>
+                  {product.active ? (
+                    <button
+                      className={dangerButton}
+                      disabled={isBusy}
+                      onClick={() => setConfirmingDeactivation(true)}
+                      type="button"
+                    >
+                      Inativar produto
+                    </button>
+                  ) : (
+                    <button
+                      className={secondaryButton}
+                      disabled={isBusy}
+                      onClick={() => void changeActive(true)}
+                      type="button"
+                    >
+                      Reativar produto
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

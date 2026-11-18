@@ -516,12 +516,16 @@ function AppRoutes({
       <Route
         path="/estoque/ajustar"
         element={
-          <StockAdjustmentPage
-            onNavigate={navigateTo}
-            onUpdate={updateProduct}
-            products={products}
-            setupData={setupData}
-          />
+          isAdministrator ? (
+            <StockAdjustmentPage
+              onNavigate={navigateTo}
+              onUpdate={updateProduct}
+              products={products}
+              setupData={setupData}
+            />
+          ) : (
+            <Navigate replace to="/dashboard" />
+          )
         }
       />
       <Route
@@ -592,6 +596,7 @@ function AppRoutes({
         path="/produtos/:productId"
         element={
           <ProductDetailRoute
+            canManageProducts={isAdministrator}
             onNavigate={navigateTo}
             onUpdate={updateProduct}
             productById={productById}
@@ -807,6 +812,7 @@ function ProductEditRoute({
 }
 
 function ProductDetailRoute({
+  canManageProducts = false,
   onNavigate,
   onUpdate,
   productById,
@@ -817,6 +823,7 @@ function ProductDetailRoute({
   if (!product || !onUpdate) return <Navigate replace to="/produtos" />
   return (
     <ProductDetailPage
+      canManageProducts={canManageProducts}
       onNavigate={onNavigate}
       onUpdate={onUpdate}
       product={product}
