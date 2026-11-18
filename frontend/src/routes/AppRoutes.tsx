@@ -592,7 +592,6 @@ function AppRoutes({
         path="/produtos/:productId"
         element={
           <ProductDetailRoute
-            canManageProducts={isAdministrator}
             onNavigate={navigateTo}
             onUpdate={updateProduct}
             productById={productById}
@@ -808,7 +807,6 @@ function ProductEditRoute({
 }
 
 function ProductDetailRoute({
-  canManageProducts,
   onNavigate,
   onUpdate,
   productById,
@@ -819,7 +817,6 @@ function ProductDetailRoute({
   if (!product || !onUpdate) return <Navigate replace to="/produtos" />
   return (
     <ProductDetailPage
-      canManageProducts={canManageProducts ?? false}
       onNavigate={onNavigate}
       onUpdate={onUpdate}
       product={product}
