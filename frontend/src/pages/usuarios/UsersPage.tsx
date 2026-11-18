@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import {
   createCollaborator,
   deactivateUser,
+  isAdministratorProfile,
   listUsers,
   type DirectoryUser,
 } from '../../services/authService'
@@ -146,7 +147,7 @@ function UsersPage({ onNavigate }: UsersPageProps) {
   }
 
   const collaborators = users.filter(
-    (user) => user.tipo.trim().toUpperCase() !== 'ADMINISTRADOR',
+    (user) => !isAdministratorProfile(user.tipo),
   )
 
   return (

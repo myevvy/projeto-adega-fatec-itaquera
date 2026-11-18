@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { AppPath } from '../../types'
 import { useAuth } from '../../hooks/useAuth'
+import { isAdministratorProfile } from '../../services/authService'
 
 type AppSidebarProps = {
   currentPage: string
@@ -139,8 +140,7 @@ function isItemActive(currentPage: string, page: AppPath) {
 
 function AppSidebar({ currentPage, onNavigate, userName}: AppSidebarProps) {
   const { session } = useAuth()
-  const isAdministrator =
-    session?.usuario.perfil.trim().toUpperCase() === 'ADMINISTRADOR'
+  const isAdministrator = isAdministratorProfile(session?.usuario.perfil)
 
  const [moreOpen, setMoreOpen] = useState(false)
  

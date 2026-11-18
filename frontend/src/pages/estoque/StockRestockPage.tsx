@@ -152,9 +152,17 @@ function StockRestockPage({
     !isSaving
 
   const openDatePicker = () => {
+    const input = dateInputRef.current
+    if (!input) return
+
     try {
-      dateInputRef.current?.showPicker?.()
+      if (input.showPicker) {
+        input.showPicker()
+      } else {
+        input.focus()
+      }
     } catch {
+      input.focus()
     }
   }
 

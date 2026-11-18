@@ -8,6 +8,7 @@ import {
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { isAdministratorProfile } from '../services/authService'
 import {
   adjustProductStock,
   cancelExpense,
@@ -193,8 +194,7 @@ function AppRoutes({
     return <Navigate replace state={{ from: location }} to="/login" />
   }
 
-  const isAdministrator =
-    session?.usuario.perfil.trim().toUpperCase() === 'ADMINISTRADOR'
+  const isAdministrator = isAdministratorProfile(session?.usuario.perfil)
   const navigateTo = (page: AppPath) => navigate(`/${page}`)
   const handleLogin = async (email: string, password: string) => {
     const authenticatedSession = await login(email, password)

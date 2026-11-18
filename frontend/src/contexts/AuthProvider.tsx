@@ -2,10 +2,18 @@ import { useEffect, useState, type ReactNode } from 'react'
 import {
   getTokenExpiration,
   getTokenProfile,
+  isAuthenticationFailure,
   login as loginRequest,
   logout as logoutRequest,
   type AuthSession,
 } from '../services/authService'
+import {
+  clearLoginFailures,
+  getLockoutMessage,
+  getLoginAttemptState,
+  recordLoginFailure,
+  MAX_LOGIN_ATTEMPTS,
+} from '../services/loginLockout'
 import { AuthContext } from './auth-context'
 
 const AUTH_STORAGE_KEY = 'adega.auth-session'
@@ -73,15 +81,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session])
 
   const login = async (email: string, senha: string) => {
-    const authenticatedSession = await loginRequest(email, senha)
-    const expiration = getTokenExpiration(authenticatedSession.token)
-    if (!expiration || expiration <= Date.now()) {
-      throw new Error('A API retornou um token inválido ou expirado.')
+    const attemptState = await getLoginAttemptState(email)
+    if (attemptState.lockedUntil !== null) {
+      throw new Error(getLockoutMessage(attemptState.lockedUntil))
     }
 
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedSession))
-    setSession(authenticatedSession)
-    return authenticatedSession
+    try {
+      const authenticatedSession = await loginRequest(email, senha)
+      const expiration = getTokenExpiration(authenticatedSession.token)
+      if (!expiration || expiration <= Date.now()) {
+        throw new Error('A API retornou um token inválido ou expirado.')
+      }
+
+      await clearLoginFailures(email)
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedSession))
+      setSession(authenticatedSession)
+      return authenticatedSession
+    } catch (error) {
+      if (!isAuthenticationFailure(error)) throw error
+
+      try {
+        const nextAttemptState = await recordLoginFailure(email)
+        if (nextAttemptState.lockedUntil !== null) {
+          throw new Error(getLockoutMessage(nextAttemptState.lockedUntil), {
+            cause: error,
+          })
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível autenticar o usuário.'
+        throw new Error(
+          `${message} Tentativa ${nextAttemptState.failedAttempts} de ${MAX_LOGIN_ATTEMPTS}.`,
+          { cause: error },
+        )
+      } catch (lockoutError) {
+        if (
+          lockoutError instanceof Error &&
+          lockoutError.cause === error
+        ) {
+          throw lockoutError
+        }
+        throw new Error(
+          `${
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível autenticar o usuário.'
+          } Não foi possível salvar o bloqueio neste navegador.`,
+          { cause: lockoutError },
+        )
+      }
+    }
   }
 
   const logout = async () => {

@@ -23,6 +23,15 @@ export type DirectoryUser = {
   ativo: boolean
 }
 
+export function isAdministratorProfile(profile: string | null | undefined) {
+  return profile?.trim().toUpperCase() === 'ADMINISTRADOR'
+}
+
+export function isAuthenticationFailure(error: unknown) {
+  if (!(error instanceof Error) || !isAxiosError(error.cause)) return false
+  return [401, 403, 404].includes(error.cause.response?.status ?? 0)
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
