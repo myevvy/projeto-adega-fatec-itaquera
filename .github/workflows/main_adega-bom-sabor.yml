@@ -48,7 +48,7 @@ jobs:
           az webapp config set \
             --resource-group "$resource_group" \
             --name adega-bom-sabor \
-            --runtime "NODE:24" \
+            --runtime "NODE:22" \
             --output none
           az webapp config appsettings set \
             --resource-group "$resource_group" \
