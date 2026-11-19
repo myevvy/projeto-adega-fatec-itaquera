@@ -487,10 +487,7 @@ function AppRoutes({
         path="/vendas/relatorio"
         element={
           isAdministrator ? (
-            <SalesReportPage 
-              onNavigate={navigateTo} 
-              sales={sales}
-              setupData={setupData} />
+            <SalesReportPage onNavigate={navigateTo} setupData={setupData} />
           ) : (
             <Navigate replace to="/dashboard" />
           )
