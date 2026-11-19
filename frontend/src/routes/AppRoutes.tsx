@@ -497,7 +497,6 @@ function AppRoutes({
         path="/nova-venda"
         element={
           <SalePage
-            setupData={setupData}
             onNavigate={navigateTo}
             onSaleCreated={saveSale}
             products={products}
