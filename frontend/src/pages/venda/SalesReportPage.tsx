@@ -478,7 +478,6 @@ function NewSalePage({ onBack, onFinish, onConfirm }: NewSalePageProps) {
           </aside>
         </div>
 
-        {/* Barra fixa de confirmação (mobile / tablet) */}
         <div className="fixed inset-x-0 bottom-0 border-t border-[#ecece4] bg-[#fbfaf5]/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
           <div className="mx-auto max-w-md">{confirmBar}</div>
         </div>
