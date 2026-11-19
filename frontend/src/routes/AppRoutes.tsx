@@ -462,6 +462,7 @@ function AppRoutes({
         element={
           isAdministrator ? (
             <ExpenseReportPage
+              expenses={expenses}
               onCancelExpense={handleCancelExpense}
               onNavigate={navigateTo}
               setupData={setupData}
@@ -486,7 +487,10 @@ function AppRoutes({
         path="/vendas/relatorio"
         element={
           isAdministrator ? (
-            <SalesReportPage onNavigate={navigateTo} setupData={setupData} />
+            <SalesReportPage 
+              onNavigate={navigateTo} 
+              sales={sales}
+              setupData={setupData} />
           ) : (
             <Navigate replace to="/dashboard" />
           )
