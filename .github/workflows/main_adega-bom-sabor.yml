@@ -45,38 +45,11 @@ jobs:
             echo "Azure Web App adega-bom-sabor was not found or is not accessible."
             exit 1
           fi
-          app_is_linux=$(az webapp show \
+          az webapp config set \
             --resource-group "$resource_group" \
             --name adega-bom-sabor \
-            --query reserved \
-            --output tsv)
-          if [ "$app_is_linux" = "true" ]; then
-            available_runtimes=$(az webapp list-runtimes --os linux --query "[].config" --output tsv)
-            node_runtime=$(printf '%s\n' "$available_runtimes" | tr '|' ':' | grep -E '^NODE:22(-lts)?$' | head -n 1 || true)
-            if [ -z "$node_runtime" ]; then
-              echo "Azure does not list a supported Node.js 22 runtime for Linux App Service."
-              printf '%s\n' "$available_runtimes" | grep '^NODE' || true
-              exit 1
-            fi
-            az webapp config set \
-              --resource-group "$resource_group" \
-              --name adega-bom-sabor \
-              --runtime "$node_runtime" \
-              --output none
-          else
-            available_runtimes=$(az webapp list-runtimes --os windows --query "[].config" --output tsv)
-            node_runtime=$(printf '%s\n' "$available_runtimes" | tr '|' ':' | grep -E '^NODE:22(-lts)?$' | head -n 1 || true)
-            if [ -z "$node_runtime" ]; then
-              echo "Azure does not list a supported Node.js 22 runtime for Windows App Service."
-              printf '%s\n' "$available_runtimes" | grep '^NODE' || true
-              exit 1
-            fi
-            az webapp config appsettings set \
-              --resource-group "$resource_group" \
-              --name adega-bom-sabor \
-              --settings "WEBSITE_NODE_DEFAULT_VERSION=~22" \
-              --output none
-          fi
+            --runtime "NODE:24" \
+            --output none
           az webapp config appsettings set \
             --resource-group "$resource_group" \
             --name adega-bom-sabor \

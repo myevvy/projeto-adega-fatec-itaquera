@@ -5,7 +5,7 @@
 - Localmente, defina `FIREBASE_API_KEY` no `backend/.env` e mantenha a credencial JSON em `backend/config/serviceAccountKey.json` (arquivo ignorado pelo Git).
 - No GitHub, cadastre `FIREBASE_SERVICE_ACCOUNT` com o conteúdo JSON da conta de serviço e `VITE_FIREBASE_API_KEY` com a chave Web do Firebase. O workflow grava essas configurações no Azure; a chave Web é usada pelo frontend e pela verificação da redefinição no backend.
 - No Firebase Console, configure a URL de ação do template de redefinição de senha para a página publicada `/esqueci-senha` e autorize o domínio do frontend. Essa página recebe o código do Firebase, define a nova senha e sincroniza o hash usado pelo login do sistema.
-- O backend requer Node.js 22 ou superior, definido no Dockerfile, no pacote e no deploy do Azure para atender à versão do Firebase Admin SDK.
+- O backend agora requer Node.js 24.12 ou superior, definido no Dockerfile e no deploy do Azure para atender à versão do Firebase Admin SDK.
 - Para executar os testes locais do serviço Firebase Auth, rode `npm test` dentro de `backend/`. Eles simulam as respostas HTTP e não enviam e-mails nem chamam o Firebase real.
 
 ## Relatório de vendas
