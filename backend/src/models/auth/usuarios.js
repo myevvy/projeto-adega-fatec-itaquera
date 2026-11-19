@@ -49,14 +49,6 @@ const getUsuarioID = async (id) => {
   return rows[0] || null;
 };
 
-const getUsuarioPorEmail = async (email) => {
-  const [rows] = await db.query(
-    "SELECT id FROM usuario WHERE email = ?",
-    [email],
-  );
-  return rows[0] || null;
-};
-
 const verificaPerfil = async (id) => {
   const [rows] = await db.query(
     "SELECT id FROM perfil WHERE id = ?",
@@ -73,14 +65,6 @@ const atualizarTentativasLogin = async (id, tentativas, bloqueadoAte) => {
   `;
 
   await db.execute(sql, [tentativas, bloqueadoAte, id]);
-};
-
-const atualizarSenha = async (id, senha_hash) => {
-  const [result] = await db.execute("UPDATE usuario SET senha_hash = ? WHERE id = ?", [
-    senha_hash,
-    id,
-  ]);
-  return result.affectedRows > 0;
 };
 
 const postUsuario = async (perfil_id, nome, email, senha_hash, telefone) => {
@@ -167,11 +151,9 @@ const alterarStatus = async (id, status) => {
 export default {
   getUsuario,
   getUsuarioID,
-  getUsuarioPorEmail,
   getUsuarioLogin,
   postUsuario,
   atualizarTentativasLogin,
-  atualizarSenha,
   putUsuario,
   alterarStatus,
   verificaPerfil,

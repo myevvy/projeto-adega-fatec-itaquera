@@ -4,7 +4,6 @@ import "../../config/env.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
-import firebaseAuth from "../../config/firebaseAdmin.js";
 
 const getUsuarios = async (req, res) => {
   try {
@@ -49,55 +48,26 @@ const cadastro = async (req, res) => {
       });
     }
 
-    let firebaseUid;
-    try {
-      const firebaseUser = await firebaseAuth.createUser({
-        email,
-        password: senha,
-        displayName: nome,
-      });
-      firebaseUid = firebaseUser.uid;
-    } catch (firebaseError) {
-      console.error("Erro ao criar no Firebase:", firebaseError.message);
-      if (firebaseError.code === "auth/email-already-exists") {
-        return res.status(409).json({
-          mensagem: "Este e-mail já está cadastrado no Firebase.",
-        });
-      }
+    const senha_hash = await bcrypt.hash(senha, 10);
+
+    const idUsuario = await usuarioModel.postUsuario(
+      perfil_id,
+      nome,
+      email,
+      senha_hash,
+      telefone,
+    );
+
+    if (!idUsuario) {
       return res.status(400).json({
-        mensagem: "Erro ao registrar usuário na autenticação.",
+        mensagem: "Não foi possível cadastrar o usuário.",
       });
     }
 
-    try {
-      const senha_hash = await bcrypt.hash(senha, 10);
-      const idUsuario = await usuarioModel.postUsuario(
-        perfil_id,
-        nome,
-        email,
-        senha_hash,
-        telefone,
-      );
-
-      if (!idUsuario) {
-        throw new Error("O cadastro no banco não retornou o ID do usuário.");
-      }
-
-      return res.status(201).json({
-        mensagem: "Usuário cadastrado com sucesso!",
-        id: idUsuario,
-      });
-    } catch (erroCadastro) {
-      try {
-        await firebaseAuth.deleteUser(firebaseUid);
-      } catch (erroRemocao) {
-        console.error(
-          "Erro ao remover do Firebase a conta criada sem cadastro no banco:",
-          erroRemocao.message,
-        );
-      }
-      throw erroCadastro;
-    }
+    return res.status(201).json({
+      mensagem: "Usuário cadastrado com sucesso!",
+      id: idUsuario,
+    });
   } catch (erro) {
     console.log("Erro no cadastro:", erro.message);
 
@@ -153,7 +123,9 @@ const login = async (req, res) => {
       usuario.bloqueado_ate = null;
     }
 
-    const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
+    const senhaCorreta = await bcrypt.compare(
+      senha, usuario.senha_hash
+    );
 
     if (!senhaCorreta) {
       const tentativas = usuario.tentativas_falhas + 1;

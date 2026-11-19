@@ -15,4 +15,3 @@ Thumbs.db
 # Variáveis de ambiente e segredos
 .env
 *.key   
-serviceAccountKey.json

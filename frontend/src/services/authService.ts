@@ -93,12 +93,6 @@ async function requestJson(
   }
 }
 
-export async function confirmPasswordReset(oobCode: string, senha: string) {
-  await requestJson('/auth/reset-password', 'POST', {
-    body: { oobCode, senha },
-  })
-}
-
 export async function login(email: string, senha: string): Promise<AuthSession> {
   const result = await requestJson('/login', 'POST', {
     body: { email, senha },
