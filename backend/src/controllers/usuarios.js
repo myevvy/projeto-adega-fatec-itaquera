@@ -1,6 +1,7 @@
 import usuarioModel from "../models/auth/usuarios.js";
 import sessaoModel from "../models/auth/sessoes.js";
 import "../../config/env.js";
+import admin from "../../config/firebaseAdmin.js"; // NOVO
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
@@ -22,6 +23,10 @@ const getUsuarios = async (req, res) => {
 };
 
 const cadastro = async (req, res) => {
+  // NOVO: fica fora do try para o catch poder desfazer a criação no Firebase
+  let firebaseUid = null;
+  let salvoNoBanco = false;
+
   try {
     // O perfil_id é fornecido pelo próprio front-end
     const { perfil_id, nome, email, telefone, senha } = req.body;
@@ -48,6 +53,40 @@ const cadastro = async (req, res) => {
       });
     }
 
+    // NOVO: cria a conta no Firebase (é ela que permite recuperar a senha por e-mail)
+    try {
+      const usuarioFirebase = await admin.auth().createUser({
+        email,
+        password: senha,
+        displayName: nome,
+      });
+      firebaseUid = usuarioFirebase.uid;
+    } catch (erroFirebase) {
+      if (erroFirebase.code === "auth/email-already-exists") {
+        return res.status(409).json({
+          mensagem: "Esse e-mail já está cadastrado no sistema de acesso.",
+        });
+      }
+
+      if (
+        erroFirebase.code === "auth/invalid-password" ||
+        erroFirebase.code === "auth/weak-password"
+      ) {
+        return res.status(400).json({
+          mensagem: "A senha deve ter pelo menos 6 caracteres.",
+        });
+      }
+
+      if (erroFirebase.code === "auth/invalid-email") {
+        return res.status(400).json({ mensagem: "E-mail inválido." });
+      }
+
+      console.error("Erro ao criar usuário no Firebase:", erroFirebase.message);
+      return res.status(502).json({
+        mensagem: "Erro ao criar o acesso do usuário. Tente novamente.",
+      });
+    }
+
     const senha_hash = await bcrypt.hash(senha, 10);
 
     const idUsuario = await usuarioModel.postUsuario(
@@ -59,10 +98,14 @@ const cadastro = async (req, res) => {
     );
 
     if (!idUsuario) {
+      // NOVO: desfaz no Firebase para não ficar conta órfã
+      await admin.auth().deleteUser(firebaseUid).catch(() => {});
       return res.status(400).json({
         mensagem: "Não foi possível cadastrar o usuário.",
       });
     }
+
+    salvoNoBanco = true;
 
     return res.status(201).json({
       mensagem: "Usuário cadastrado com sucesso!",
@@ -71,23 +114,39 @@ const cadastro = async (req, res) => {
   } catch (erro) {
     console.log("Erro no cadastro:", erro.message);
 
+    // NOVO: se o erro veio depois de criar no Firebase, desfaz
+    if (firebaseUid && !salvoNoBanco) {
+      await admin.auth().deleteUser(firebaseUid).catch(() => {});
+    }
+
     return res.status(500).json({
       mensagem: "Erro interno ao cadastrar usuário.",
     });
   }
 };
 
+// ALTERADO: agora o e-mail e a senha são conferidos pelo Firebase (no front).
+// O front manda o idToken e este controller devolve o JWT/sessão de sempre.
 const login = async (req, res) => {
   try {
-    const { email, senha } = req.body;
+    const { idToken } = req.body;
 
-    if (!email || !senha) {
+    if (!idToken) {
       return res.status(400).json({
         mensagem: "Preencha os campos obrigatórios.",
       });
     }
 
-    const usuario = await usuarioModel.getUsuarioLogin(email);
+    let tokenFirebase;
+    try {
+      tokenFirebase = await admin.auth().verifyIdToken(idToken);
+    } catch {
+      return res.status(401).json({
+        mensagem: "Usuário ou senha incorretos.",
+      });
+    }
+
+    const usuario = await usuarioModel.getUsuarioLogin(tokenFirebase.email);
 
     if (!usuario) {
       return res.status(404).json({
@@ -101,62 +160,6 @@ const login = async (req, res) => {
       });
     }
 
-    if (usuario.bloqueado_ate) {
-      const agora = new Date();
-      const bloqueadoAte = new Date(usuario.bloqueado_ate);
-
-      if (agora < bloqueadoAte) {
-        const minutos = Math.ceil(
-          (bloqueadoAte - agora) / 60000
-        );
-
-        return res.status(429).json({
-          mensagem: `Muitas tentativas. Tente novamente em ${minutos} minutos.`,
-        });
-      }
-
-      await usuarioModel.atualizarTentativasLogin(
-        usuario.id, 0, null
-      );
-
-      usuario.tentativas_falhas = 0;
-      usuario.bloqueado_ate = null;
-    }
-
-    const senhaCorreta = await bcrypt.compare(
-      senha, usuario.senha_hash
-    );
-
-    if (!senhaCorreta) {
-      const tentativas = usuario.tentativas_falhas + 1;
-
-      if (tentativas >= 3) {
-        const bloqueadoAte = new Date(
-          Date.now() + 10 * 60 * 1000
-        );
-
-        await usuarioModel.atualizarTentativasLogin(
-          usuario.id, tentativas, bloqueadoAte
-        );
-
-        return res.status(429).json({
-          mensagem: "Limite de tentativas atingido. Conta bloqueada por 10 minutos.",
-        });
-      }
-
-      await usuarioModel.atualizarTentativasLogin(
-        usuario.id, tentativas, null
-      );
-
-      return res.status(401).json({
-        mensagem: `Usuário ou senha incorretos.`,
-      });
-    }
-
-    await usuarioModel.atualizarTentativasLogin(
-      usuario.id, 0, null
-    );
-
     const token = jwt.sign(
       {
         id: usuario.id,
@@ -167,9 +170,7 @@ const login = async (req, res) => {
       { expiresIn: "8h" },
     );
 
-    const tokenHash = createHash("sha256")
-      .update(token)
-      .digest("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
 
     await sessaoModel.criarSessao(usuario.id, tokenHash);
 
@@ -183,7 +184,6 @@ const login = async (req, res) => {
         email: usuario.email,
       },
     });
-
   } catch (erro) {
     console.log("Erro no login:", erro.message);
 
@@ -192,7 +192,6 @@ const login = async (req, res) => {
     });
   }
 };
-
 
 const logout = async (req, res) => {
   try {
@@ -236,6 +235,27 @@ const putUsuario = async (req, res) => {
       return res.status(404).json({
         mensagem: "Usuário não encontrado.",
       });
+    }
+
+    // NOVO: mantém e-mail/senha do Firebase iguais aos do sistema
+    const mudouEmail = email && email !== usuarioExiste.email;
+
+    if (senha || mudouEmail) {
+      try {
+        const usuarioFirebase = await admin
+          .auth()
+          .getUserByEmail(usuarioExiste.email);
+
+        await admin.auth().updateUser(usuarioFirebase.uid, {
+          ...(senha && { password: senha }),
+          ...(mudouEmail && { email }),
+        });
+      } catch (erroFirebase) {
+        console.error("Erro ao atualizar no Firebase:", erroFirebase.message);
+        return res.status(502).json({
+          mensagem: "Não foi possível atualizar o acesso do usuário.",
+        });
+      }
     }
 
     let senha_hash;

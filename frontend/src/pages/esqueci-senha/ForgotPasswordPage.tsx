@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import AuthLayout from '../../components/auth-layout/AuthLayout'
-import { sendPasswordResetEmail } from '../../services/firebasePasswordReset'
+import { sendPasswordResetEmail } from '../../services/'
 
 type ForgotPasswordPageProps = {
   onBackToLogin: () => void

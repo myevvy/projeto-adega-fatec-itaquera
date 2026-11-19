@@ -1,3 +1,5 @@
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth' // NOVO
+import { auth } from './firebase' // NOVO
 import { api, apiErrorMessage, isAxiosError } from './api'
 
 export type AuthUser = {
@@ -93,9 +95,34 @@ async function requestJson(
   }
 }
 
+// NOVO: pega o idToken no Firebase (confere e-mail e senha lá)
+async function getFirebaseIdToken(email: string, senha: string) {
+  try {
+    const credencial = await signInWithEmailAndPassword(auth, email.trim(), senha)
+    return await credencial.user.getIdToken()
+  } catch (erro) {
+    const code = (erro as { code?: string }).code
+
+    if (code === 'auth/too-many-requests') {
+      throw new Error('Muitas tentativas. Aguarde alguns minutos e tente novamente.')
+    }
+    if (code === 'auth/user-disabled') {
+      throw new Error('Usuário desativado. Entre em contato com o administrador.')
+    }
+    if (code === 'auth/network-request-failed') {
+      throw new Error('Sem conexão. Verifique sua internet e tente novamente.')
+    }
+    // credencial inválida, usuário inexistente, senha errada etc.
+    throw new Error('Usuário ou senha incorretos.')
+  }
+}
+
 export async function login(email: string, senha: string): Promise<AuthSession> {
+  // ALTERADO: em vez de mandar e-mail e senha, manda o idToken do Firebase
+  const idToken = await getFirebaseIdToken(email, senha)
+
   const result = await requestJson('/login', 'POST', {
-    body: { email, senha },
+    body: { idToken },
   })
 
   if (
@@ -183,8 +210,13 @@ export async function createCollaborator(
   })
 }
 
-export function logout(token: string) {
-  return requestJson('/logout', 'POST', { body: {}, token })
+// ALTERADO: também encerra a sessão do Firebase no navegador
+export async function logout(token: string) {
+  try {
+    return await requestJson('/logout', 'POST', { body: {}, token })
+  } finally {
+    await signOut(auth).catch(() => {})
+  }
 }
 
 export function deactivateUser(token: string, userId: number) {
