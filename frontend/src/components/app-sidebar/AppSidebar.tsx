@@ -96,7 +96,7 @@ function ReportIcon() {
   )
 }
  
-function SettingsIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function GearIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
