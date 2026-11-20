@@ -1,7 +1,6 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import type { AppPath } from '../../types/sistema'
 import type { NotificationPreferences, SetupData } from '../../types/usuario'
 
@@ -171,6 +170,81 @@ function StatusBanner({
   )
 }
 
+function LogoutDialog({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  
+  useEffect(() => {
+    cancelRef.current?.focus()
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onCancel])
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]"
+      onClick={onCancel}
+    >
+      <div
+        aria-describedby="logout-dialog-description"
+        aria-labelledby="logout-dialog-title"
+        aria-modal="true"
+        className="max-h-full w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-6 shadow-xl sm:max-w-md sm:p-7"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <h2
+          className="text-lg font-bold leading-tight text-[#26291f]"
+          id="logout-dialog-title"
+        >
+          Sair da conta?
+        </h2>
+        <p
+          className="mt-2 text-sm leading-relaxed text-[#6f6b60]"
+          id="logout-dialog-description"
+        >
+          Você precisará entrar novamente para acessar a adega. Seus dados permanecerão
+          salvos.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            className={`w-full rounded-xl bg-[#3b4a2b] py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#2f3b22] active:scale-[0.99] focus-visible:ring-offset-2 ${focusRing}`}
+            onClick={onCancel}
+            ref={cancelRef}
+            type="button"
+          >
+            Cancelar
+          </button>
+          <button
+            className="w-full rounded-xl py-3 text-[15px] font-semibold text-[#b3261e] transition hover:bg-[#fdf1f0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b3261e]/30 focus-visible:ring-offset-2"
+            onClick={onConfirm}
+            type="button"
+          >
+            Sair da conta
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ProfilePage({
   notifications,
   onLogout,
@@ -211,7 +285,7 @@ function ProfilePage({
     setLogoutError('')
     try {
       await onLogout()
-      navigate('/login')
+      navigate('/login', { replace: true, state: { loggedOut: true } })
     } catch (error) {
       setLogoutError(
         error instanceof Error
@@ -428,11 +502,9 @@ function ProfilePage({
       </main>
 
       {confirmLogout && (
-        <ConfirmDialog
-          description="Sua sessão será encerrada no servidor e você voltará para a tela de login."
+        <LogoutDialog
           onCancel={() => setConfirmLogout(false)}
           onConfirm={handleLogout}
-          title="Sair da conta?"
         />
       )}
     </div>
