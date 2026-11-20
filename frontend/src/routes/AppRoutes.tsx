@@ -602,6 +602,7 @@ function AppRoutes({
           <SalePage
             onNavigate={navigateTo}
             onSaleCreated={saveSale}
+            onSaleCancelled={handleCancelSale}
             products={products}
           />
         }
