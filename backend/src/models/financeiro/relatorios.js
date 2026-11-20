@@ -44,7 +44,7 @@ const obterVendasPorDia = async (inicio, fimExclusivo) => {
       WHERE v.status = 'CONCLUIDA'
         AND v.finalizada_em >= ?
         AND v.finalizada_em < ?
-      GROUP BY DATE(v.finalizada_em)
+      GROUP BY DATE_FORMAT(v.finalizada_em, '%Y-%m-%d')
       ORDER BY DATE(v.finalizada_em) ASC`,
     [inicio, fimExclusivo],
   );
@@ -91,7 +91,7 @@ const obterVendasPorFormaPagamento = async (inicio, fimExclusivo) => {
       WHERE v.status = 'CONCLUIDA'
         AND v.finalizada_em >= ?
         AND v.finalizada_em < ?
-      GROUP BY v.forma_pagamento
+      GROUP BY COALESCE(v.forma_pagamento, 'Não informado')
       ORDER BY totalVendas DESC, formaPagamento ASC`,
     [inicio, fimExclusivo],
   );
