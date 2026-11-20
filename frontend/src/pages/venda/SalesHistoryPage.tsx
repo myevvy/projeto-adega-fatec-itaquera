@@ -64,6 +64,7 @@ function SaleDetails({
     : sale.total
   const discount = Math.max(Math.round((subtotal - sale.total) * 100) / 100, 0)
 
+  // Garante que a mensagem de sucesso apareça na tela (no mobile ela fica abaixo dos totais)
   useEffect(() => {
     if (cancelNotice) noticeRef.current?.scrollIntoView({ block: 'nearest' })
   }, [cancelNotice])
@@ -258,6 +259,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const selectedSale = selectedId ? (sales.find((sale) => sale.id === selectedId) ?? null) : null
   const activeSales = filteredSales.filter((sale) => sale.status !== 'CANCELADA')
   const total = activeSales.reduce((sum, sale) => sum + sale.total, 0)
+  // Logo após cancelar, a lista recarregada pode vir sem os itens: reaproveita os de antes
   const detailSale =
     selectedSale &&
     cancelNotice?.saleId === selectedSale.id &&
@@ -265,6 +267,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       ? { ...selectedSale, items: cancelNotice.items }
       : selectedSale
 
+  // Fecha o diálogo de cancelamento com Esc (exceto durante o envio)
   useEffect(() => {
     if (!saleToCancel) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -301,6 +304,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       setSaleToCancel(null)
       window.scrollTo({ top: 0 })
     } catch (cancelError) {
+      // Fecha o diálogo para o erro ficar visível na página
       setSaleToCancel(null)
       setError(
         cancelError instanceof Error ? cancelError.message : 'Não foi possível cancelar a venda.',
@@ -330,7 +334,11 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
           />
         ) : (
           <>
-
+            {/*
+              Título e filtro sempre empilhados: o filtro (7 opções) é largo
+              demais para dividir a linha com o título, e rola na horizontal
+              quando a tela é estreita.
+            */}
             <header className="flex flex-col gap-4 border-b border-[#e8e4d9] pb-4">
               <div>
                 <h1 className="text-xl font-bold tracking-tight sm:text-[1.6rem]">
@@ -494,7 +502,8 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
           </>
         )}
       </section>
-      
+
+      {/* Confirmação de cancelamento */}
       {saleToCancel && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-[#1d1c19]/50 p-4 sm:items-center"
