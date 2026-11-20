@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import SalesPeriodFilter from '../../components/sales-period-filter/SalesPeriodFilter'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdministratorProfile } from '../../services/authService'
@@ -56,6 +55,7 @@ function SaleDetails({
   onBack,
   onCancel,
 }: SaleDetailsProps) {
+  const noticeRef = useRef<HTMLDivElement>(null)
   const shortId = sale.id.slice(-6)
   const hasItems = sale.items.length > 0
   const units = sale.items.reduce((count, item) => count + item.quantity, 0)
@@ -63,6 +63,10 @@ function SaleDetails({
     ? sale.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
     : sale.total
   const discount = Math.max(Math.round((subtotal - sale.total) * 100) / 100, 0)
+
+  useEffect(() => {
+    if (cancelNotice) noticeRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [cancelNotice])
 
   return (
     <article aria-labelledby="sale-details-heading" className="w-full">
@@ -89,14 +93,18 @@ function SaleDetails({
             Detalhes da Venda
           </h1>
         </header>
-        
+
         <div className="flex items-center justify-between gap-3 border-b border-[#e8e4d9] pb-4">
           <h2 className="text-xl font-bold tracking-tight">Venda #{shortId}</h2>
-          {cancelled && (
-            <span className="rounded-full bg-[#ece9e0] px-3 py-1 text-xs font-semibold text-[#6f6b61]">
-              Cancelada
-            </span>
-          )}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              cancelled
+                ? 'bg-[#ece9e0] text-[#6f6b61]'
+                : 'bg-[#34452b] text-[#faf8f3]'
+            }`}
+          >
+            {cancelled ? 'Cancelada' : 'Concluída'}
+          </span>
         </div>
 
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-b border-[#e8e4d9] pb-4 text-[0.82rem]">
@@ -160,6 +168,7 @@ function SaleDetails({
         {cancelNotice && (
           <div
             className="flex items-start gap-3 rounded-xl border border-[#cfdcc0] bg-[#e4ecd9] p-4 text-[#2b3a23]"
+            ref={noticeRef}
             role="status"
           >
             <svg
@@ -196,7 +205,7 @@ function SaleDetails({
             {error}
           </p>
         )}
-        
+
         <div className="flex flex-col gap-2">
           {!cancelled && (
             <button
@@ -245,6 +254,16 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const selectedSale = selectedId ? (sales.find((sale) => sale.id === selectedId) ?? null) : null
   const activeSales = filteredSales.filter((sale) => sale.status !== 'CANCELADA')
   const total = activeSales.reduce((sum, sale) => sum + sale.total, 0)
+
+  useEffect(() => {
+    if (!saleToCancel) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isCancelling) setSaleToCancel(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [saleToCancel, isCancelling])
+
   const openDetails = (saleId: string) => {
     setError('')
     setCancelNotice(null)
@@ -271,6 +290,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       setSaleToCancel(null)
       window.scrollTo({ top: 0 })
     } catch (cancelError) {
+      setSaleToCancel(null)
       setError(
         cancelError instanceof Error ? cancelError.message : 'Não foi possível cancelar a venda.',
       )
@@ -299,8 +319,8 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
           />
         ) : (
           <>
-
-            <header className="flex flex-col gap-3 border-b border-[#e8e4d9] pb-4 sm:flex-row sm:items-start sm:justify-between">
+        
+            <header className="flex flex-col gap-4 border-b border-[#e8e4d9] pb-4">
               <div>
                 <h1 className="text-xl font-bold tracking-tight sm:text-[1.6rem]">
                   Histórico de Vendas
@@ -309,11 +329,10 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
                   Consulte as vendas realizadas no período.
                 </p>
               </div>
-              <div>
-                <SalesPeriodFilter
-                  onChange={setPeriod}
-                  value={period}
-                />
+              <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="w-max min-w-full">
+                  <SalesPeriodFilter onChange={setPeriod} value={period} />
+                </div>
               </div>
             </header>
 
@@ -466,12 +485,51 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       </section>
 
       {saleToCancel && (
-        <ConfirmDialog
-          description="O cancelamento será registrado no banco e fará o estorno do estoque e do financeiro."
-          onCancel={() => setSaleToCancel(null)}
-          onConfirm={() => void handleCancel()}
-          title={isCancelling ? 'Cancelando venda...' : 'Cancelar venda?'}
-        />
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#1d1c19]/50 p-4 sm:items-center"
+          onClick={() => {
+            if (!isCancelling) setSaleToCancel(null)
+          }}
+        >
+          <div
+            aria-describedby="cancelar-venda-descricao"
+            aria-labelledby="cancelar-venda-titulo"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl border border-[#e8e4d9] bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <h2 className="text-lg font-bold tracking-tight" id="cancelar-venda-titulo">
+              Cancelar venda #{saleToCancel.id.slice(-6)}?
+            </h2>
+            <p
+              className="mt-2 text-sm leading-6 text-[#6f6b61]"
+              id="cancelar-venda-descricao"
+            >
+              O estoque e o financeiro serão estornados. Essa ação não pode ser desfeita.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                autoFocus
+                className={`min-h-12 rounded-xl border border-[#e8e4d9] bg-white text-sm font-semibold transition-colors hover:bg-[#efece3] motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                disabled={isCancelling}
+                onClick={() => setSaleToCancel(null)}
+                type="button"
+              >
+                Manter venda
+              </button>
+              <button
+                className="min-h-12 rounded-xl bg-[#b3261e] text-sm font-semibold text-white transition-colors hover:bg-[#8f1f19] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b3261e] motion-reduce:transition-none disabled:cursor-wait disabled:opacity-60"
+                disabled={isCancelling}
+                onClick={() => void handleCancel()}
+                type="button"
+              >
+                {isCancelling ? 'Cancelando…' : 'Cancelar venda'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   )
