@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import { useAuth } from '../../hooks/useAuth'
 import {
   createCollaborator,
@@ -66,6 +65,15 @@ function UsersPage({ onNavigate }: UsersPageProps) {
     }
   }, [session])
 
+  useEffect(() => {
+    if (!userToDeactivate) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isDeactivating) setUserToDeactivate(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [userToDeactivate, isDeactivating])
+
   const refreshUsers = async () => {
     if (!session) return
 
@@ -127,6 +135,7 @@ function UsersPage({ onNavigate }: UsersPageProps) {
       setUserToDeactivate(null)
       await refreshUsers()
     } catch (deactivationError) {
+      setUserToDeactivate(null)
       setError(
         deactivationError instanceof Error
           ? deactivationError.message
@@ -151,18 +160,19 @@ function UsersPage({ onNavigate }: UsersPageProps) {
   )
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#1c1f1a] md:flex">
+    <div className="min-h-dvh bg-[#faf9f6] text-[#1c1f1a] md:flex">
       <AppSidebar
         currentPage="configuracoes"
         onNavigate={onNavigate}
         userName={session?.usuario.nome ?? ''}
       />
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+      <main className="mx-auto w-full min-w-0 max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
         <button
+          className="mb-4 -ml-1 inline-flex items-center gap-2 rounded-md px-1 py-2 text-sm text-[#687064] transition hover:text-[#1c1f1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d4d35]"
           onClick={() => onNavigate('configuracoes')}
           type="button"
         >
-          ← Voltar para configurações
+          <span aria-hidden="true">←</span> Voltar para configurações
         </button>
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -196,7 +206,7 @@ function UsersPage({ onNavigate }: UsersPageProps) {
         {message && (
           <p
             aria-live="polite"
-            className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+            className="mb-5 break-words rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
             role="status"
           >
             {message}
@@ -334,7 +344,7 @@ function UsersPage({ onNavigate }: UsersPageProps) {
                       <td className="px-5 py-4 text-gray-600">{user.tipo}</td>
                       <td className="px-5 py-4">
                         <button
-                          className="cursor-pointer rounded-lg px-3 py-2 font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          className="cursor-pointer rounded-lg px-3 py-2 font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:opacity-50"
                           disabled={isDeactivating}
                           onClick={() => setUserToDeactivate(user)}
                           type="button"
@@ -349,15 +359,56 @@ function UsersPage({ onNavigate }: UsersPageProps) {
             </div>
           )}
         </section>
-        {userToDeactivate && (
-          <ConfirmDialog
-            description={`O acesso de ${userToDeactivate.nome} será desativado. A pessoa não poderá mais entrar no painel.`}
-            onCancel={() => setUserToDeactivate(null)}
-            onConfirm={() => void handleDeactivate()}
-            title="Desativar colaborador?"
-          />
-        )}
       </main>
+
+      {userToDeactivate && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#1c1f1a]/50 p-4 sm:items-center"
+          onClick={() => {
+            if (!isDeactivating) setUserToDeactivate(null)
+          }}
+        >
+          <div
+            aria-describedby="desativar-descricao"
+            aria-labelledby="desativar-titulo"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl border border-[#e7e9e3] bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <h2 className="text-lg font-semibold" id="desativar-titulo">
+              Desativar colaborador?
+            </h2>
+            <p
+              className="mt-2 break-words text-sm leading-6 text-gray-600"
+              id="desativar-descricao"
+            >
+              O acesso de <strong className="font-semibold text-[#1c1f1a]">{userToDeactivate.nome}</strong>{' '}
+              será desativado. A pessoa não poderá mais entrar no painel.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                autoFocus
+                className="min-h-11 cursor-pointer rounded-xl border border-[#e7e9e3] bg-white px-5 py-3 text-sm font-semibold transition-colors hover:bg-[#f2f4ef] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d4d35] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isDeactivating}
+                onClick={() => setUserToDeactivate(null)}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className="min-h-11 cursor-pointer rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+                disabled={isDeactivating}
+                onClick={() => void handleDeactivate()}
+                type="button"
+              >
+                {isDeactivating ? 'Desativando…' : 'Desativar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
