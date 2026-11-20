@@ -170,8 +170,8 @@ export async function createCollaborator(
     telefone: string
     senha: string
   },
-) {
-  return requestJson('/cadastro', 'POST', {
+): Promise<{ id: number; nome: string; reativado: boolean }> {
+  const result = await requestJson('/cadastro', 'POST', {
     token,
     body: {
       perfil_id: 2,
@@ -181,6 +181,19 @@ export async function createCollaborator(
       senha: input.senha,
     },
   })
+  if (
+    !isRecord(result) ||
+    typeof result.id !== 'number' ||
+    typeof result.nome !== 'string' ||
+    typeof result.reativado !== 'boolean'
+  ) {
+    throw new Error('Não foi possível confirmar o cadastro do colaborador.')
+  }
+  return {
+    id: result.id,
+    nome: result.nome,
+    reativado: result.reativado,
+  }
 }
 
 export function updateUserProfile(

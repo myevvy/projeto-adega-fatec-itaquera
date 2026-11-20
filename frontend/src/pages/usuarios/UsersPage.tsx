@@ -100,14 +100,16 @@ function UsersPage({ onNavigate }: UsersPageProps) {
     setIsSubmitting(true)
     const initialPassword = form.senha
     try {
-      await createCollaborator(session.token, {
+      const result = await createCollaborator(session.token, {
         nome: form.nome.trim(),
         email: form.email.trim(),
         telefone: form.telefone.trim(),
         senha: initialPassword,
       })
       setMessage(
-        `Colaborador cadastrado com sucesso. Senha inicial de ${form.nome.trim()}: ${initialPassword}. Compartilhe-a de forma segura.`,
+        result.reativado
+          ? `${result.nome} foi reativado. Os dados e a senha anteriores foram mantidos.`
+          : `Colaborador cadastrado com sucesso. Senha inicial de ${form.nome.trim()}: ${initialPassword}. Compartilhe-a de forma segura.`,
       )
       setForm(emptyForm)
       setIsFormOpen(false)
@@ -222,8 +224,10 @@ function UsersPage({ onNavigate }: UsersPageProps) {
               Novo colaborador
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Uma senha inicial exclusiva será gerada para este colaborador e
-              exibida após o cadastro. Compartilhe-a por um canal seguro.
+              Para um novo colaborador, uma senha inicial exclusiva será
+              gerada e exibida após o cadastro. Se o e-mail pertencer a uma
+              conta desativada, ela será reativada com os dados e a senha
+              anteriores.
             </p>
             <form
               className="mt-5 grid gap-4 sm:grid-cols-2"

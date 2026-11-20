@@ -40,9 +40,25 @@ const cadastro = async (req, res) => {
       });
     }
 
-    const usuarioExiste = await usuarioModel.getUsuario(email);
+    const usuarioExiste = await usuarioModel.getUsuarioPorEmail(email);
 
     if (usuarioExiste) {
+      if (!usuarioExiste.ativo) {
+        if (Number(usuarioExiste.perfil_id) !== Number(perfil_id)) {
+          return res.status(409).json({
+            mensagem: "Esse usuário já existe.",
+          });
+        }
+
+        await usuarioModel.alterarStatus(usuarioExiste.id, 1);
+        return res.status(200).json({
+          mensagem: "Colaborador reativado com sucesso.",
+          id: usuarioExiste.id,
+          nome: usuarioExiste.nome,
+          reativado: true,
+        });
+      }
+
       return res.status(409).json({
         mensagem: "Esse usuário já existe.",
       });
@@ -67,9 +83,17 @@ const cadastro = async (req, res) => {
     return res.status(201).json({
       mensagem: "Usuário cadastrado com sucesso!",
       id: idUsuario,
+      nome,
+      reativado: false,
     });
   } catch (erro) {
     console.log("Erro no cadastro:", erro.message);
+
+    if (erro.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        mensagem: "Esse usuário já existe.",
+      });
+    }
 
     return res.status(500).json({
       mensagem: "Não foi possível cadastrar o usuário.",
