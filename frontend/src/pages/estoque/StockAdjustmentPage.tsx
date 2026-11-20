@@ -6,7 +6,15 @@ import type { AppPath, Product, SetupData } from '../../types'
 
 type StockAdjustmentPageProps = {
   onNavigate: (path: AppPath) => void
-  onUpdate: (product: Product) => Promise<void>
+  onUpdate: (
+    product: Product,
+    movement?: {
+      tipo: 'entrada' | 'saida' | 'ajuste'
+      quantidadeMovimentada: number
+      motivo: string
+      observacao: string
+    },
+  ) => Promise<void>
   products: Product[]
   setupData: SetupData
 }
@@ -142,7 +150,20 @@ function StockAdjustmentPage({
     setError('')
     setIsSaving(true)
     try {
-      await onUpdate({ ...selectedProduct, stock: resultingStock })
+      await onUpdate(
+        { ...selectedProduct, stock: resultingStock },
+        {
+          tipo:
+            movement === 'ENTRADA'
+              ? 'entrada'
+              : movement === 'SAIDA'
+                ? 'saida'
+                : 'ajuste',
+          quantidadeMovimentada: quantity,
+          motivo: reason,
+          observacao: observation,
+        },
+      )
       setToast({
         title: `${MOVEMENT_NAME[movement]} registrada com sucesso!`,
         message: `${selectedProduct.name}: estoque atualizado para ${resultingStock} un. Motivo: ${reason}.${observation ? ` ${observation}` : ''}`,

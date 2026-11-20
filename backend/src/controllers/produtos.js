@@ -123,7 +123,7 @@ const putProdutos = async (req, res) => {
 
 const alterarQuantidade = async (req, res) => {
   try {
-    const { quantidade, tipo, quantidadeMovimentada } = req.body;
+    const { quantidade, tipo, quantidadeMovimentada, motivo, observacao } = req.body;
     const { id } = req.params;
     const { id: usuario_id } = req.usuario;
 
@@ -132,13 +132,14 @@ const alterarQuantidade = async (req, res) => {
 
     if (novaMovimentacao) {
       if (
-        !["entrada", "saida"].includes(tipo) ||
+        !["entrada", "saida", "ajuste"].includes(tipo) ||
         !Number.isSafeInteger(quantidadeMovimentada) ||
-        quantidadeMovimentada <= 0
+        ((tipo === "entrada" || tipo === "saida") &&
+          quantidadeMovimentada <= 0)
       ) {
         return res.status(400).json({
           mensagem:
-            "Informe uma entrada ou saída e uma quantidade inteira maior que zero.",
+            "Informe uma entrada, saída ou ajuste e uma quantidade inteira válida.",
         });
       }
     } else if (!Number.isSafeInteger(quantidade) || quantidade < 0) {
@@ -150,7 +151,7 @@ const alterarQuantidade = async (req, res) => {
 
     const saldoAtualizado = await produtosModels.alterarQuantidade(
       id,
-      { quantidade, tipo, quantidadeMovimentada },
+      { quantidade, tipo, quantidadeMovimentada, motivo, observacao },
       usuario_id,
     );
 

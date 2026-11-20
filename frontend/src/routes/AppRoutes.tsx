@@ -323,7 +323,15 @@ function AppRoutes({
     })
     return category
   }
-  const updateProduct = async (product: Product) => {
+  const updateProduct = async (
+    product: Product,
+    movement?: {
+      tipo: 'entrada' | 'saida' | 'ajuste'
+      quantidadeMovimentada: number
+      motivo: string
+      observacao: string
+    },
+  ) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
     const current = products.find((item) => item.id === product.id)
     if (current?.active && !product.active) {
@@ -333,7 +341,7 @@ function AppRoutes({
       )
       return
     } else if (current && current.stock !== product.stock) {
-      await adjustProductStock(session.token, product.id, product.stock)
+      await adjustProductStock(session.token, product.id, product.stock, movement)
     } else {
       await updateProductRequest(session.token, product)
     }

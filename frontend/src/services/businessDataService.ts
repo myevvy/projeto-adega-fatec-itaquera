@@ -148,10 +148,18 @@ function mapSale(row: ApiRecord): SaleRecord {
     row.tipo_cartao === 'CREDITO' || row.tipo_cartao === 'DEBITO'
         ? row.tipo_cartao
         : undefined
+  const items = Array.isArray(row.itens)
+    ? row.itens.filter(isRecord).map((item) => ({
+        productId: requiredNumber(item.produto_id, 'produto da venda'),
+        name: requiredText(item.produto, 'nome do produto vendido'),
+        quantity: requiredNumber(item.quantidade, 'quantidade vendida'),
+        unitPrice: requiredNumber(item.preco_unitario, 'preço unitário'),
+      }))
+    : []
   return {
     id: requiredText(row.id, 'id da venda'),
     createdAt: requiredText(row.data_hora, 'data da venda'),
-    items: [],
+    items,
     paymentMethod,
     cardType,
     total: requiredNumber(row.total, 'total da venda'),
@@ -329,9 +337,16 @@ export async function adjustProductStock(
   token: string,
   productId: number,
   quantity: number,
+  movement?: {
+    tipo: 'entrada' | 'saida' | 'ajuste'
+    quantidadeMovimentada: number
+    motivo: string
+    observacao: string
+  },
 ): Promise<void> {
   await request(`/produtos/quantidade/${productId}`, 'PUT', token, {
     quantidade: quantity,
+    ...(movement ?? {}),
   })
 }
 

@@ -18,7 +18,22 @@ const soData = (d) =>
 
 const getVendas = async () => {
   const [rows] = await db.query(`${SELECT_BASE} ORDER BY v.data_hora DESC, v.id DESC`);
-  return rows;
+  if (rows.length === 0) return rows;
+
+  const ids = rows.map((row) => row.id);
+  const [itens] = await db.query(
+    `SELECT iv.venda_id, iv.produto_id, p.nome AS produto,
+            iv.quantidade, iv.preco_unitario
+       FROM item_venda iv
+       JOIN produto p ON p.id = iv.produto_id
+      WHERE iv.venda_id IN (?)`,
+    [ids]
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    itens: itens.filter((item) => item.venda_id === row.id),
+  }));
 };
 
 const getVendasUsuario = async (idUsuario) => {
@@ -26,7 +41,22 @@ const getVendasUsuario = async (idUsuario) => {
     `${SELECT_BASE} WHERE v.usuario_id = ? ORDER BY v.data_hora DESC, v.id DESC`,
     [idUsuario]
   );
-  return rows;
+  if (rows.length === 0) return rows;
+
+  const ids = rows.map((row) => row.id);
+  const [itens] = await db.query(
+    `SELECT iv.venda_id, iv.produto_id, p.nome AS produto,
+            iv.quantidade, iv.preco_unitario
+       FROM item_venda iv
+       JOIN produto p ON p.id = iv.produto_id
+      WHERE iv.venda_id IN (?)`,
+    [ids]
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    itens: itens.filter((item) => item.venda_id === row.id),
+  }));
 };
 
 const getVendaID = async (id) => {
