@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type {
@@ -12,6 +12,8 @@ import type {
 type NewSalePageProps = {
   onNavigate: (path: AppPath) => void
   onSaleCreated: (sale: SaleRecord) => Promise<void>
+  onSaleCancelled: (saleId: string) => Promise<void>
+  sellerName?: string
   products: Product[]
 }
 
@@ -20,7 +22,16 @@ const PAYMENTS: PaymentMethod[] = ['Dinheiro', 'PIX', 'Cartão']
 const currency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-/* ---------- Ícones ---------- */
+const formatDateTime = (iso: string) => {
+  const date = new Date(iso)
+  const day = date.toLocaleDateString('pt-BR')
+  const time = date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return `${day} às ${time}`
+}
+
 const iconProps = {
   fill: 'none',
   stroke: 'currentColor',
@@ -50,6 +61,11 @@ const MicIcon = () => (
 )
 const CheckIcon = () => (
   <svg className="size-12 sm:size-14" {...iconProps} strokeWidth={1.6}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </svg>
+)
+const SmallCheckIcon = () => (
+  <svg className="size-5 shrink-0" {...iconProps} strokeWidth={1.6}>
     <path d="m5 12.5 4.5 4.5L19 7.5" />
   </svg>
 )
@@ -84,7 +100,6 @@ const PaymentIcon = ({ method }: { method: PaymentMethod }) => {
   )
 }
 
-/* ---------- Seletor de quantidade ---------- */
 function QuantityStepper({
   quantity,
   onChange,
@@ -130,10 +145,30 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
   )
 }
 
-/* ---------- Página ---------- */
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3 text-xs">
+      <dt className="text-[#747a6d]">{label}</dt>
+      <dd className="font-medium text-[#343a2f]">{value}</dd>
+    </div>
+  )
+}
+
+type RegisteredSale = {
+  sale: SaleRecord
+  total: number
+  subtotal: number
+  discount: number
+  payment: PaymentMethod
+  cardType: CardType | null
+  items: number
+}
+
 function NewSalePage({
   onNavigate,
   onSaleCreated,
+  onSaleCancelled,
+  sellerName,
   products,
 }: NewSalePageProps) {
   const [search, setSearch] = useState('')
@@ -145,18 +180,12 @@ function NewSalePage({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const [registered, setRegistered] = useState<{
-    total: number
-    payment: PaymentMethod
-    cardType: CardType | null
-    items: number
-  } | null>(null)
-
-  useEffect(() => {
-    if (!registered) return
-    const timeout = window.setTimeout(() => onNavigate('vendas'), 2000)
-    return () => window.clearTimeout(timeout)
-  }, [onNavigate, registered])
+  const [registered, setRegistered] = useState<RegisteredSale | null>(null)
+  const [view, setView] = useState<'success' | 'details'>('success')
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
+  const [cancelError, setCancelError] = useState('')
 
   const categories = useMemo(
     () => [
@@ -219,7 +248,7 @@ function NewSalePage({
     setSubmitting(true)
     setError('')
     try {
-      await onSaleCreated({
+      const sale: SaleRecord = {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         items: cartItems.map(({ product, quantity }) => ({
@@ -231,8 +260,18 @@ function NewSalePage({
         paymentMethod: payment,
         cardType: payment === 'Cartão' ? cardType ?? undefined : undefined,
         total,
+      }
+      await onSaleCreated(sale)
+      setRegistered({
+        sale,
+        total,
+        subtotal,
+        discount,
+        payment,
+        cardType,
+        items: itemCount,
       })
-      setRegistered({ total, payment, cardType, items: itemCount })
+      setView('success')
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -241,6 +280,25 @@ function NewSalePage({
       )
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const cancelSale = async () => {
+    if (!registered) return
+    setCancelling(true)
+    setCancelError('')
+    try {
+      await onSaleCancelled(registered.sale.id)
+      setCancelled(true)
+      setConfirmingCancel(false)
+    } catch (cancelFailure) {
+      setCancelError(
+        cancelFailure instanceof Error
+          ? cancelFailure.message
+          : 'Não foi possível cancelar a venda.',
+      )
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -253,18 +311,192 @@ function NewSalePage({
     setCategory('Todos')
     setRegistered(null)
     setError('')
+    setView('success')
+    setConfirmingCancel(false)
+    setCancelling(false)
+    setCancelled(false)
+    setCancelError('')
   }
 
-  /* ----- Tela de sucesso ----- */
+  if (registered && view === 'details') {
+    const { sale } = registered
+    const saleLabel = sale.id.slice(0, 6).toUpperCase()
+    const paymentLabel =
+      registered.payment === 'Cartão' && registered.cardType
+        ? `Cartão (${registered.cardType === 'CREDITO' ? 'Crédito' : 'Débito'})`
+        : registered.payment
+
+    return (
+      <main className="min-h-dvh bg-[#fbfaf5] text-[#2b3025]">
+        <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-8 pt-5">
+          <header className="flex items-center gap-2 pb-2">
+            <button
+              aria-label="Voltar"
+              className="-ml-2 grid size-9 place-items-center rounded-lg transition hover:bg-[#efefe9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39452d]"
+              onClick={() => {
+                setConfirmingCancel(false)
+                setView('success')
+              }}
+              type="button"
+            >
+              <BackIcon />
+            </button>
+            <h1 className="text-base font-bold">Detalhes da Venda</h1>
+          </header>
+
+          <section className="mt-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold">Venda #{saleLabel}</h2>
+              <span
+                className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  cancelled
+                    ? 'bg-[#efefe9] text-[#747a6d]'
+                    : 'bg-[#39452d] text-white'
+                }`}
+              >
+                {cancelled ? 'Cancelada' : 'Concluída'}
+              </span>
+            </div>
+            <dl className="mt-3 space-y-1.5 border-t border-[#eff0eb] pt-3">
+              <InfoRow label="Data e hora" value={formatDateTime(sale.createdAt)} />
+              <InfoRow label="Pagamento" value={paymentLabel} />
+              {sellerName && <InfoRow label="Vendedor" value={sellerName} />}
+            </dl>
+          </section>
+
+          <section aria-labelledby="itens-titulo" className="mt-6 border-t border-[#eff0eb] pt-5">
+            <h2 className="text-base font-bold" id="itens-titulo">
+              Itens ({sale.items.length})
+            </h2>
+            <ul className="mt-3 divide-y divide-[#ecece4]">
+              {sale.items.map((item) => (
+                <li
+                  className="flex items-center gap-3 py-3"
+                  key={`${item.productId}-${item.name}`}
+                >
+                  <div aria-hidden className="size-6 shrink-0 rounded-md bg-[#dfe6d3]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{item.name}</p>
+                    <p className="mt-0.5 text-[11px] text-[#747a6d]">
+                      {item.quantity} un. × {currency(item.unitPrice)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold">
+                    {currency(item.quantity * item.unitPrice)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-3 border-t border-[#eff0eb] pt-4">
+            <dl className="space-y-1.5">
+              <InfoRow label="Subtotal" value={currency(registered.subtotal)} />
+              <InfoRow label="Desconto" value={currency(registered.discount)} />
+            </dl>
+            <div className="mt-4 flex items-end justify-between border-t border-[#eff0eb] pt-3">
+              <span className="text-sm font-bold">Total</span>
+              <strong className="text-2xl font-bold tracking-tight">
+                {currency(registered.total)}
+              </strong>
+            </div>
+            {cancelled && (
+              <p className="mt-2 text-[11px] text-[#858a80]">
+                Valor histórico da venda cancelada.
+              </p>
+            )}
+          </section>
+
+          <div className="mt-auto pt-10">
+            {cancelError && (
+              <p className="mb-3 text-center text-sm text-red-700" role="alert">
+                {cancelError}
+              </p>
+            )}
+
+            {cancelled ? (
+              <div className="space-y-4">
+                <div
+                  className="flex items-start gap-3 rounded-xl bg-[#dfe6d3] p-4 text-[#39452d]"
+                  role="status"
+                >
+                  <SmallCheckIcon />
+                  <div className="text-xs leading-relaxed">
+                    <p className="font-semibold">
+                      Venda #{saleLabel} cancelada com sucesso.
+                    </p>
+                    <p className="mt-0.5 text-[#4f6139]">
+                      Estoque restaurado: {registered.items}{' '}
+                      {registered.items === 1
+                        ? 'unidade devolvida'
+                        : 'unidades devolvidas'}
+                      .
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="h-12 w-full rounded-xl bg-[#39452d] text-sm font-semibold text-white transition hover:bg-[#2f3a25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39452d]"
+                  onClick={() => onNavigate('vendas')}
+                  type="button"
+                >
+                  Voltar ao histórico
+                </button>
+              </div>
+            ) : confirmingCancel ? (
+              <div className="space-y-3 text-center">
+                <p className="text-sm font-semibold">Cancelar esta venda?</p>
+                <p className="text-xs text-[#747a6d]">
+                  Os itens voltarão ao estoque. Essa ação não pode ser desfeita.
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    className="h-12 rounded-xl border border-[#e0e1d8] bg-white text-sm font-semibold transition hover:border-[#39452d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39452d] disabled:opacity-50"
+                    disabled={cancelling}
+                    onClick={() => setConfirmingCancel(false)}
+                    type="button"
+                  >
+                    Manter venda
+                  </button>
+                  <button
+                    className="h-12 rounded-xl bg-[#b3362c] text-sm font-semibold text-white transition hover:bg-[#9b2e25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b3362c] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={cancelling}
+                    onClick={cancelSale}
+                    type="button"
+                  >
+                    {cancelling ? 'Cancelando…' : 'Cancelar venda'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="mx-auto block rounded-lg px-3 py-2 text-sm font-semibold text-[#c0392b] transition hover:bg-[#f6e9e7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c0392b]"
+                onClick={() => setConfirmingCancel(true)}
+                type="button"
+              >
+                Cancelar venda
+              </button>
+            )}
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (registered) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#fbfaf5] px-5 py-10">
         <section className="flex w-full max-w-md flex-col items-center text-center">
-          <div className="grid size-24 place-items-center rounded-full bg-[#dfe6d3] text-[#4f6139] sm:size-28">
+          <div
+            className={`grid size-24 place-items-center rounded-full sm:size-28 ${
+              cancelled
+                ? 'bg-[#efefe9] text-[#747a6d]'
+                : 'bg-[#dfe6d3] text-[#4f6139]'
+            }`}
+          >
             <CheckIcon />
           </div>
           <h1 className="mt-8 text-2xl font-bold tracking-tight text-[#2b3025] sm:text-3xl">
-            Venda registrada!
+            {cancelled ? 'Venda cancelada' : 'Venda registrada!'}
           </h1>
           <p className="mt-4 text-xl font-bold text-[#2b3025]">{currency(registered.total)}</p>
           <p className="mt-4 text-sm leading-relaxed text-[#747a6d]">
@@ -275,7 +507,9 @@ function NewSalePage({
             · {registered.items}{' '}
             {registered.items === 1 ? 'item' : 'itens'}
             <br />
-            Estoque atualizado automaticamente
+            {cancelled
+              ? 'Estoque restaurado automaticamente'
+              : 'Estoque atualizado automaticamente'}
           </p>
 
           <button
@@ -284,6 +518,13 @@ function NewSalePage({
             type="button"
           >
             Fazer outra venda
+          </button>
+          <button
+            className="mt-3 h-12 w-full rounded-xl border border-[#e0e1d8] bg-white text-sm font-semibold text-[#2b3025] transition hover:border-[#39452d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39452d]"
+            onClick={() => setView('details')}
+            type="button"
+          >
+            Ver detalhes da venda
           </button>
           <button
             className="mt-5 rounded-lg px-3 py-2 text-sm font-semibold text-[#747a6d] transition hover:text-[#39452d]"
@@ -297,7 +538,6 @@ function NewSalePage({
     )
   }
 
-  /* ----- Resumo (reutilizado no mobile e no desktop) ----- */
   const summary = (
     <Card>
       <div className="flex items-center justify-between">
@@ -435,7 +675,6 @@ function NewSalePage({
   return (
     <main className="min-h-dvh bg-[#fbfaf5] text-[#2b3025]">
       <div className="mx-auto flex min-h-dvh max-w-md flex-col lg:max-w-6xl">
-        {/* Cabeçalho */}
         <header className="flex items-center gap-2 px-5 pb-2 pt-5 lg:px-8 lg:pt-8">
           <button
             aria-label="Voltar"
@@ -449,7 +688,6 @@ function NewSalePage({
         </header>
 
         <div className="flex-1 px-5 pb-32 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8 lg:px-8 lg:pb-10">
-          {/* Coluna: busca + produtos */}
           <section aria-label="Produtos">
             <div className="mt-2 flex gap-2">
               <label className="flex h-11 flex-1 items-center gap-2 rounded-xl bg-[#efefe9] px-3 text-[#747a6d] focus-within:ring-2 focus-within:ring-[#39452d]">
@@ -538,7 +776,6 @@ function NewSalePage({
             </ul>
           </section>
 
-          {/* Coluna: resumo + pagamento + confirmar */}
           <aside className="mt-5 space-y-6 lg:sticky lg:top-8 lg:mt-2">
             {summary}
             {paymentSection}
