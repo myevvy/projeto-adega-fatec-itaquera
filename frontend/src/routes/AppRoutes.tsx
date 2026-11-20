@@ -25,6 +25,7 @@ import {
   createSale,
   deactivateProduct,
   deactivateSupplier,
+  getEstablishment,
   listExpenses,
   listExpenseCategories,
   listProducts,
@@ -33,6 +34,7 @@ import {
   listSales,
   listSuppliers,
   saveSupplier as saveSupplierRequest,
+  saveEstablishment as saveEstablishmentRequest,
   supplierPurchasesFromRecords,
   updateProduct as updateProductRequest,
 } from '../services/businessDataService'
@@ -165,6 +167,7 @@ function AppRoutes({
         listSuppliers(session.token),
         listProductCategories(session.token),
         listExpenseCategories(session.token),
+        getEstablishment(session.token),
       ])
       if (!active) return
 
@@ -177,6 +180,7 @@ function AppRoutes({
         suppliersResult,
         productCategoriesResult,
         expenseCategoriesResult,
+        establishmentResult,
       ] = results
       if (productsResult.status === 'fulfilled') {
         onProductsChange(productsResult.value)
@@ -227,6 +231,17 @@ function AppRoutes({
       } else {
         errors.push(`categorias de despesas: ${expenseCategoriesResult.reason instanceof Error ? expenseCategoriesResult.reason.message : 'falha ao carregar'}`)
       }
+      if (establishmentResult.status === 'fulfilled') {
+        onSetupDataChange({
+          businessName: establishmentResult.value?.businessName ?? '',
+          category: establishmentResult.value?.category ?? '',
+          phone: establishmentResult.value?.phone ?? '',
+          adminName: session.usuario.nome,
+          email: session.usuario.email,
+        })
+      } else {
+        errors.push(`estabelecimento: ${establishmentResult.reason instanceof Error ? establishmentResult.reason.message : 'falha ao carregar'}`)
+      }
       setDataLoadError(errors.join(' · '))
     }
     void loadData()
@@ -240,6 +255,7 @@ function AppRoutes({
     onPurchasesChange,
     onExpensesChange,
     onSuppliersChange,
+    onSetupDataChange,
   ])
 
   if (!session && !publicPaths.includes(location.pathname)) {
@@ -387,6 +403,22 @@ function AppRoutes({
     })
     onSetupDataChange(data)
     updateSessionUser({ nome: data.adminName, email: data.email })
+  }
+  const saveBusinessSettings = async (data: SetupData) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await saveEstablishmentRequest(session.token, {
+      businessName: data.businessName.trim(),
+      category: data.category.trim(),
+      phone: data.phone.trim(),
+    })
+    onSetupDataChange({
+      ...data,
+      businessName: data.businessName.trim(),
+      category: data.category.trim(),
+      phone: data.phone.trim(),
+      adminName: session.usuario.nome,
+      email: session.usuario.email,
+    })
   }
   const handleCancelSale = async (saleId: string) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
@@ -725,7 +757,7 @@ function AppRoutes({
           isAdministrator ? (
             <SettingsPage
               onNavigate={navigateTo}
-              onSetupDataChange={onSetupDataChange}
+              onSave={saveBusinessSettings}
               setupData={setupData}
             />
           ) : (

@@ -5,7 +5,7 @@ import type { SetupData } from '../../types/usuario'
 
 type SettingsPageProps = {
   onNavigate: (path: AppPath) => void
-  onSetupDataChange: (data: SetupData) => void
+  onSave: (data: SetupData) => Promise<void>
   setupData: SetupData
 }
 
@@ -103,22 +103,38 @@ function SectionHeader({
 
 function SettingsPage({
   onNavigate,
-  onSetupDataChange,
+  onSave,
   setupData,
 }: SettingsPageProps) {
   const [view, setView] = useState<View>('menu')
   const [form, setForm] = useState(setupData)
   const [message, setMessage] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const goTo = (next: View) => {
     setMessage('')
+    setSaveError('')
     setView(next)
   }
 
-  const handleBusinessSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleBusinessSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSetupDataChange(form)
-    setMessage('Dados da adega salvos neste navegador.')
+    setMessage('')
+    setSaveError('')
+    setIsSaving(true)
+    try {
+      await onSave(form)
+      setMessage('Dados da adega salvos no banco de dados.')
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar os dados da adega.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const statusMessage = message && (
@@ -154,7 +170,10 @@ function SettingsPage({
                 <SectionHeader id="business-title" title="Negócio" />
                 <button
                   className={`${menuCardClass} mt-3 justify-between`}
-                  onClick={() => goTo('business')}
+                  onClick={() => {
+                    setForm(setupData)
+                    goTo('business')
+                  }}
                   type="button"
                 >
                   <span className="min-w-0">
@@ -246,12 +265,13 @@ function SettingsPage({
                           businessName: event.target.value,
                         }))
                       }
+                      maxLength={120}
                       required
                       value={form.businessName}
                     />
                   </label>
                   <label className={labelClass}>
-                    Categoria
+                    Categoria *
                     <input
                       className={inputClass}
                       onChange={(event) =>
@@ -260,6 +280,8 @@ function SettingsPage({
                           category: event.target.value,
                         }))
                       }
+                      maxLength={80}
+                      required
                       value={form.category}
                     />
                   </label>
@@ -273,48 +295,34 @@ function SettingsPage({
                           phone: event.target.value,
                         }))
                       }
+                      maxLength={20}
                       placeholder="(00) 00000-0000"
                       type="tel"
                       value={form.phone}
                     />
                   </label>
-                  <label className={labelClass}>
-                    Nome do administrador
-                    <input
-                      className={inputClass}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          adminName: event.target.value,
-                        }))
-                      }
-                      value={form.adminName}
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    E-mail
-                    <input
-                      className={inputClass}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          email: event.target.value,
-                        }))
-                      }
-                      type="email"
-                      value={form.email}
-                    />
-                  </label>
                 </div>
 
                 <p className="mt-4 text-xs text-[#8a8678]">
-                  Mantenha os dados de contato da adega atualizados.
+                  Nome e contato do administrador podem ser atualizados em Perfil.
                 </p>
                 {statusMessage}
+                {saveError && (
+                  <p
+                    className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                    role="alert"
+                  >
+                    {saveError}
+                  </p>
+                )}
 
                 <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] mt-8 flex sm:justify-end lg:static lg:mt-6">
-                  <button className={primaryButtonClass} type="submit">
-                    Salvar alterações
+                  <button
+                    className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                    disabled={isSaving}
+                    type="submit"
+                  >
+                    {isSaving ? 'Salvando...' : 'Salvar alterações'}
                   </button>
                 </div>
               </form>

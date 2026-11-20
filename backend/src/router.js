@@ -14,6 +14,7 @@ import upload from "./middlewares/uploadProdutos.js";
 import authController from "./controllers/authController.js";
 import categoriasProdutos from "./controllers/estoque/categorias.js";
 import categoriasDespesas from "./controllers/financeiro/categorias.js";
+import estabelecimento from "./controllers/estabelecimento.js";
 
 const router = Router();
 
@@ -76,6 +77,18 @@ router.delete("/vendas/:id", autentica.autenticar, vendas.cancelarVenda);
 router.get("/despesas", autentica.autenticar, despesas.getDespesas);
 router.post("/despesas", autentica.autenticar, despesas.postDespesas);
 router.delete("/despesas/:id", autentica.autenticar, despesas.estornarDespesa);
+router.get(
+  "/estabelecimento",
+  autentica.autenticar,
+  verificaAdm,
+  estabelecimento.getEstabelecimento,
+);
+router.put(
+  "/estabelecimento",
+  autentica.autenticar,
+  verificaAdm,
+  estabelecimento.putEstabelecimento,
+);
 router.get(
   "/categorias/despesas",
   autentica.autenticar,

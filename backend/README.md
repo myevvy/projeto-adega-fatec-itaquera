@@ -14,6 +14,23 @@ perfil de administrador.
   e cadastra ou reativa uma categoria de despesa. O tipo deve corresponder a
   um tipo já utilizado pelas categorias existentes.
 
+## Dados do estabelecimento
+
+As rotas exigem autenticação e perfil de administrador. `GET /estabelecimento`
+retorna o cadastro único da adega ou `null` quando ainda não foi salvo.
+`PUT /estabelecimento` cria ou atualiza o registro e recebe:
+
+```json
+{
+  "nome_estabelecimento": "Adega Exemplo",
+  "categoria_estabelecimento": "Vinhos",
+  "telefone_comercial": "(11) 99999-9999"
+}
+```
+
+O salvamento marca `onboarding_concluido` como verdadeiro e atualiza os
+timestamps do registro.
+
 ## Relatório de vendas
 
 `GET /relatorios/vendas` retorna dados de vendas concluídas para uso em cards e gráficos. A rota exige autenticação e perfil de administrador.

@@ -6,9 +6,14 @@ import type {
 } from '../types/financeiro'
 import type { Supplier, SupplierPurchase } from '../types/fornecedor'
 import type { ProductCategory } from '../types/produto'
+import type { SetupData } from '../types/usuario'
 import { api, apiErrorMessage } from './api'
 
 type ApiRecord = Record<string, unknown>
+export type EstablishmentSettings = Pick<
+  SetupData,
+  'businessName' | 'category' | 'phone'
+>
 
 const purchasePaymentMethods: PurchasePaymentMethod[] = [
   'DINHEIRO',
@@ -41,6 +46,26 @@ function requiredNumber(value: unknown, field: string): number {
 
 function activeValue(value: unknown): boolean {
   return value === true || value === 1 || value === '1'
+}
+
+function mapEstablishment(value: unknown): EstablishmentSettings {
+  if (!isRecord(value)) {
+    throw new Error('A API retornou dados inválidos do estabelecimento.')
+  }
+  return {
+    businessName: requiredText(
+      value.nome_estabelecimento,
+      'nome do estabelecimento',
+    ),
+    category: requiredText(
+      value.categoria_estabelecimento,
+      'categoria do estabelecimento',
+    ),
+    phone:
+      value.telefone_comercial == null
+        ? ''
+        : requiredText(value.telefone_comercial, 'telefone comercial'),
+  }
 }
 
 async function request(
@@ -175,6 +200,33 @@ function mapExpense(row: ApiRecord): ExpenseRecord {
 
 export async function listProducts(token: string): Promise<Product[]> {
   return records(await request('/produtos', 'GET', token), 'produtos').map(mapProduct)
+}
+
+export async function getEstablishment(
+  token: string,
+): Promise<EstablishmentSettings | null> {
+  const result = await request('/estabelecimento', 'GET', token)
+  if (!isRecord(result) || !('estabelecimento' in result)) {
+    throw new Error('A API retornou dados inválidos do estabelecimento.')
+  }
+  return result.estabelecimento === null
+    ? null
+    : mapEstablishment(result.estabelecimento)
+}
+
+export async function saveEstablishment(
+  token: string,
+  establishment: EstablishmentSettings,
+): Promise<EstablishmentSettings> {
+  const result = await request('/estabelecimento', 'PUT', token, {
+    nome_estabelecimento: establishment.businessName,
+    categoria_estabelecimento: establishment.category,
+    telefone_comercial: establishment.phone,
+  })
+  if (!isRecord(result) || !('estabelecimento' in result)) {
+    throw new Error('A API não confirmou o salvamento do estabelecimento.')
+  }
+  return mapEstablishment(result.estabelecimento)
 }
 
 function mapProductCategory(row: ApiRecord): ProductCategory {
