@@ -46,5 +46,10 @@ export type PurchaseRecord = {
   unitCost: number
   date: string
   total: number
+  paymentMethod?: PurchasePaymentMethod
+  paymentTermDays?: number
+  freightAndTaxes?: number
   status?: string
 }
+
+export type PurchasePaymentMethod = 'DINHEIRO' | 'PIX' | 'CARTAO' | 'BOLETO'

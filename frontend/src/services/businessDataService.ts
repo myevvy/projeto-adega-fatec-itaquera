@@ -1,6 +1,7 @@
 import type { ExpenseRecord, Product, SaleRecord } from '../types'
 import type {
   ExpenseCategoryOption,
+  PurchasePaymentMethod,
   PurchaseRecord,
 } from '../types/financeiro'
 import type { Supplier, SupplierPurchase } from '../types/fornecedor'
@@ -8,6 +9,13 @@ import type { ProductCategory } from '../types/produto'
 import { api, apiErrorMessage } from './api'
 
 type ApiRecord = Record<string, unknown>
+
+const purchasePaymentMethods: PurchasePaymentMethod[] = [
+  'DINHEIRO',
+  'PIX',
+  'CARTAO',
+  'BOLETO',
+]
 
 function isRecord(value: unknown): value is ApiRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -124,6 +132,9 @@ function mapSale(row: ApiRecord): SaleRecord {
 function mapPurchase(row: ApiRecord): PurchaseRecord {
   const items = Array.isArray(row.itens) ? row.itens.filter(isRecord) : []
   const item = items[0]
+  const paymentMethod = purchasePaymentMethods.find(
+    (method) => method === row.forma_pagamento,
+  )
   return {
     id: requiredText(row.id, 'id da compra'),
     supplierId: requiredText(row.fornecedor_id, 'fornecedor da compra'),
@@ -134,6 +145,12 @@ function mapPurchase(row: ApiRecord): PurchaseRecord {
     unitCost: item ? requiredNumber(item.custo, 'custo da compra') : 0,
     date: requiredText(row.data, 'data da compra').slice(0, 10),
     total: requiredNumber(row.total, 'total da compra'),
+    paymentMethod,
+    paymentTermDays:
+      row.prazo_dias == null || row.prazo_dias === ''
+        ? undefined
+        : requiredNumber(row.prazo_dias, 'prazo da compra'),
+    freightAndTaxes: requiredNumber(row.frete, 'frete e impostos da compra'),
     status: typeof row.status === 'string' ? row.status : 'REGISTRADA',
   }
 }
@@ -363,12 +380,16 @@ export async function createPurchase(
   purchase: PurchaseRecord,
 ): Promise<PurchaseRecord> {
   const subtotal = purchase.quantity * purchase.unitCost
+  const freightAndTaxes =
+    purchase.freightAndTaxes ?? purchase.total - subtotal
   const result = await request('/compras', 'POST', token, {
     fornecedor_id: Number(purchase.supplierId),
     data: purchase.date,
     subtotal,
     total: purchase.total,
-    frete: purchase.total - subtotal,
+    frete: freightAndTaxes,
+    forma_pagamento: purchase.paymentMethod,
+    prazo_dias: purchase.paymentTermDays,
     itens: [
       {
         produto_id: purchase.productId,

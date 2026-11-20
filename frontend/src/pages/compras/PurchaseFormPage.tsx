@@ -4,7 +4,10 @@ import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath } from '../../types/sistema'
 import type { SetupData } from '../../types/usuario'
-import type { PurchaseRecord } from '../../types/financeiro'
+import type {
+  PurchasePaymentMethod,
+  PurchaseRecord,
+} from '../../types/financeiro'
 import type { Product } from '../../types/produto'
 import type { Supplier } from '../../types/fornecedor'
 
@@ -14,6 +17,7 @@ export type PurchaseDetail = {
   supplierName: string
   dateTime: string
   paymentMethod?: string
+  paymentTermDays?: number
   items: { id: string; name: string; quantity: number; unitCost: number }[]
   taxesAndFreight: number
 }
@@ -40,6 +44,17 @@ const inputClass =
 
 const primaryButton =
   'h-12 w-full rounded-xl bg-[#39452d] text-sm font-semibold text-white transition hover:bg-[#2f3a25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39452d] disabled:cursor-not-allowed disabled:bg-[#d9dbd2] disabled:text-[#7c8176]'
+
+const paymentMethodLabels: Record<PurchasePaymentMethod, string> = {
+  DINHEIRO: 'Dinheiro',
+  PIX: 'PIX',
+  CARTAO: 'Cartão',
+  BOLETO: 'Boleto',
+}
+
+function isPurchasePaymentMethod(value: string): value is PurchasePaymentMethod {
+  return Object.hasOwn(paymentMethodLabels, value)
+}
 
 function Field({
   label,
@@ -100,6 +115,10 @@ function PurchaseFormPage({
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('')
   const [unitCost, setUnitCost] = useState('')
+  const [paymentMethod, setPaymentMethod] =
+    useState<PurchasePaymentMethod>('DINHEIRO')
+  const [paymentTermDays, setPaymentTermDays] = useState('')
+  const [freightAndTaxes, setFreightAndTaxes] = useState('0')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -115,9 +134,24 @@ function PurchaseFormPage({
   const product = activeProducts.find((item) => String(item.id) === productId)
   const qty = Number(quantity)
   const cost = Number(unitCost.replace(',', '.'))
-  const estimatedTotal = qty > 0 && cost >= 0 ? qty * cost : 0
+  const additionalCost = Number(freightAndTaxes.replace(',', '.'))
+  const parsedPaymentTermDays = Number(paymentTermDays)
+  const subtotal = qty > 0 && cost >= 0 ? qty * cost : 0
+  const estimatedTotal =
+    subtotal +
+    (Number.isFinite(additionalCost) && additionalCost >= 0 ? additionalCost : 0)
   const valid = Boolean(
-    supplier && product && qty > 0 && unitCost && cost >= 0 && date,
+    supplier &&
+      product &&
+      qty > 0 &&
+      unitCost &&
+      cost >= 0 &&
+      date &&
+      freightAndTaxes !== '' &&
+      Number.isFinite(additionalCost) &&
+      additionalCost >= 0 &&
+      (paymentMethod !== 'BOLETO' ||
+        (Number.isInteger(parsedPaymentTermDays) && parsedPaymentTermDays > 0)),
   )
 
   const handleSubmit = async (event: FormEvent) => {
@@ -135,6 +169,10 @@ function PurchaseFormPage({
       quantity: qty,
       unitCost: cost,
       date,
+      paymentMethod,
+      paymentTermDays:
+        paymentMethod === 'BOLETO' ? parsedPaymentTermDays : undefined,
+      freightAndTaxes: additionalCost,
       total: estimatedTotal,
     }
 
@@ -144,6 +182,9 @@ function PurchaseFormPage({
         status: 'RECEBIDA',
         supplierName: supplier.name,
         dateTime: `${date}T${new Date().toTimeString().slice(0, 5)}`,
+        paymentMethod: paymentMethodLabels[paymentMethod],
+        paymentTermDays:
+          paymentMethod === 'BOLETO' ? parsedPaymentTermDays : undefined,
         items: [
           {
             id: String(product.id),
@@ -152,7 +193,7 @@ function PurchaseFormPage({
             unitCost: cost,
           },
         ],
-        taxesAndFreight: 0,
+        taxesAndFreight: additionalCost,
       })
     } catch (submitError) {
       setError(
@@ -183,6 +224,9 @@ function PurchaseFormPage({
       ],
     ]
     if (created.paymentMethod) info.push(['Pagamento', created.paymentMethod])
+    if (created.paymentTermDays) {
+      info.push(['Prazo', `${created.paymentTermDays} dias`])
+    }
 
     return (
       <main className="min-h-dvh bg-[#fbfaf5] text-[#2b3025] lg:flex">
@@ -397,6 +441,53 @@ function PurchaseFormPage({
                 />
               </Field>
             </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field htmlFor="forma-pagamento" label="Forma de pagamento">
+                <select
+                  className={inputClass}
+                  id="forma-pagamento"
+                  onChange={(event) => {
+                    if (isPurchasePaymentMethod(event.target.value)) {
+                      setPaymentMethod(event.target.value)
+                    }
+                  }}
+                  value={paymentMethod}
+                >
+                  {Object.entries(paymentMethodLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {paymentMethod === 'BOLETO' && (
+                <Field htmlFor="prazo-pagamento" label="Prazo do boleto (dias)">
+                  <input
+                    className={inputClass}
+                    id="prazo-pagamento"
+                    min={1}
+                    onChange={(event) => setPaymentTermDays(event.target.value)}
+                    required
+                    step={1}
+                    type="number"
+                    value={paymentTermDays}
+                  />
+                </Field>
+              )}
+            </div>
+
+            <Field htmlFor="frete-impostos" label="Frete e impostos">
+              <input
+                className={inputClass}
+                id="frete-impostos"
+                min={0}
+                onChange={(event) => setFreightAndTaxes(event.target.value)}
+                step="0.01"
+                type="number"
+                value={freightAndTaxes}
+              />
+            </Field>
 
             <Field htmlFor="data" label="Data da compra">
               <input
