@@ -69,13 +69,13 @@ function SaleDetails({
   }, [cancelNotice])
 
   return (
-    <article aria-labelledby="sale-details-heading" className="w-full">
-      <div className="flex max-w-xl flex-col gap-5 min-[900px]:rounded-xl min-[900px]:border min-[900px]:border-[#e8e4d9] min-[900px]:bg-white min-[900px]:p-6">
+    <article aria-labelledby="sale-details-heading" className="w-full min-w-0">
+      <div className="flex min-w-0 max-w-xl flex-col gap-5 min-[900px]:rounded-xl min-[900px]:border min-[900px]:border-[#e8e4d9] min-[900px]:bg-white min-[900px]:p-6">
 
-        <header className="flex items-center gap-2">
+        <header className="sticky top-0 z-10 -mx-4 -mt-4 flex items-center gap-2 border-b border-[#e8e4d9] bg-[#faf8f3]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6 min-[900px]:static min-[900px]:mx-0 min-[900px]:mt-0 min-[900px]:border-0 min-[900px]:bg-transparent min-[900px]:p-0 min-[900px]:backdrop-blur-none">
           <button
             aria-label="Voltar ao histórico"
-            className={`-ml-2 grid size-10 place-items-center rounded-full hover:bg-[#efece3] ${focusRing}`}
+            className={`-ml-2 grid size-11 place-items-center rounded-full hover:bg-[#efece3] ${focusRing}`}
             onClick={onBack}
             type="button"
           >
@@ -107,7 +107,7 @@ function SaleDetails({
           </span>
         </div>
 
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-b border-[#e8e4d9] pb-4 text-[0.82rem]">
+        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-b border-[#e8e4d9] pb-4 text-sm min-[900px]:text-[0.82rem]">
           <dt className="text-[#6f6b61]">Data e hora</dt>
           <dd className="m-0 text-right font-medium tabular-nums">
             {formatDateTime(sale.createdAt)}
@@ -148,7 +148,7 @@ function SaleDetails({
         </section>
 
         <section aria-label="Totais da venda" className="flex flex-col gap-2">
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[0.82rem]">
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm min-[900px]:text-[0.82rem]">
             <dt className="text-[#6f6b61]">Subtotal</dt>
             <dd className="m-0 text-right tabular-nums">{formatCurrency(subtotal)}</dd>
             <dt className="text-[#6f6b61]">Desconto</dt>
@@ -236,7 +236,11 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const [period, setPeriod] = useState<SalesPeriod>('7')
   const [saleToCancel, setSaleToCancel] = useState<SaleRecord | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [cancelNotice, setCancelNotice] = useState<{ saleId: string; units: number } | null>(null)
+  const [cancelNotice, setCancelNotice] = useState<{
+    saleId: string
+    units: number
+    items: SaleRecord['items']
+  } | null>(null)
   const [error, setError] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const filteredSales = useMemo(() => {
@@ -254,6 +258,12 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const selectedSale = selectedId ? (sales.find((sale) => sale.id === selectedId) ?? null) : null
   const activeSales = filteredSales.filter((sale) => sale.status !== 'CANCELADA')
   const total = activeSales.reduce((sum, sale) => sum + sale.total, 0)
+  const detailSale =
+    selectedSale &&
+    cancelNotice?.saleId === selectedSale.id &&
+    selectedSale.items.length === 0
+      ? { ...selectedSale, items: cancelNotice.items }
+      : selectedSale
 
   useEffect(() => {
     if (!saleToCancel) return
@@ -285,6 +295,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       setCancelNotice({
         saleId: target.id,
         units: target.items.reduce((count, item) => count + item.quantity, 0),
+        items: target.items,
       })
       setSelectedId(target.id)
       setSaleToCancel(null)
@@ -314,12 +325,12 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
             isCancelling={isCancelling}
             onBack={closeDetails}
             onCancel={() => setSaleToCancel(selectedSale)}
-            sale={selectedSale}
+            sale={detailSale ?? selectedSale}
             sellerName={setupData.adminName}
           />
         ) : (
           <>
-        
+
             <header className="flex flex-col gap-4 border-b border-[#e8e4d9] pb-4">
               <div>
                 <h1 className="text-xl font-bold tracking-tight sm:text-[1.6rem]">
@@ -483,7 +494,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
           </>
         )}
       </section>
-
+      
       {saleToCancel && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-[#1d1c19]/50 p-4 sm:items-center"
@@ -495,7 +506,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
             aria-describedby="cancelar-venda-descricao"
             aria-labelledby="cancelar-venda-titulo"
             aria-modal="true"
-            className="w-full max-w-sm rounded-2xl border border-[#e8e4d9] bg-white p-6 shadow-xl"
+            className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-[#e8e4d9] bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
