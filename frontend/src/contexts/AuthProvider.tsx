@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authenticatedSession = await loginRequest(email, senha)
     const expiration = getTokenExpiration(authenticatedSession.token)
     if (!expiration || expiration <= Date.now()) {
-      throw new Error('A API retornou um token inválido ou expirado.')
+      throw new Error('Não foi possível validar a sessão.')
     }
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedSession))

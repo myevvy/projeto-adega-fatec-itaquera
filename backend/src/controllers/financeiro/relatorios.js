@@ -84,7 +84,7 @@ const getRelatorioVendas = async (req, res) => {
     console.error("Erro ao gerar relatório de vendas:", erro);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao gerar relatório de vendas.",
+      mensagem: "Não foi possível gerar o relatório de vendas.",
     });
   }
 };
@@ -133,7 +133,7 @@ const getRelatorioDespesas = async (req, res) => {
     console.error("Erro ao gerar relatório de despesas:", erro);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao gerar relatório de despesas.",
+      mensagem: "Não foi possível gerar o relatório de despesas.",
     });
   }
 };

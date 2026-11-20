@@ -11,7 +11,7 @@ const getVendas = async (_req, res) => {
  
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar vendas... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar as vendas.",
     });
   }
 };
@@ -42,7 +42,7 @@ const getVendasUsuario = async (req, res) => {
     console.error("Erro ao buscar vendas do usuário:", erro);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao buscar vendas do usuário.",
+      mensagem: "Não foi possível carregar as vendas do usuário.",
     });
   }
 };
@@ -95,7 +95,7 @@ const postVendas = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar venda.",
+      mensagem: "Não foi possível concluir o cadastro da venda.",
     });
   }
 };
@@ -141,7 +141,7 @@ const cancelarVenda = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cancelar venda.",
+      mensagem: "Não foi possível cancelar a venda.",
     });
   }
 };

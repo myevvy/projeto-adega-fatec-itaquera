@@ -16,7 +16,7 @@ const getUsuarios = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar usuários... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar os usuários.",
     });
   }
 };
@@ -72,7 +72,7 @@ const cadastro = async (req, res) => {
     console.log("Erro no cadastro:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar usuário.",
+      mensagem: "Não foi possível cadastrar o usuário.",
     });
   }
 };
@@ -188,7 +188,7 @@ const login = async (req, res) => {
     console.log("Erro no login:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao logar usuário.",
+      mensagem: "Não foi possível realizar o acesso.",
     });
   }
 };
@@ -211,7 +211,7 @@ const logout = async (req, res) => {
     console.log("Erro no logout:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao deslogar usuário.",
+      mensagem: "Não foi possível encerrar a sessão.",
     });
   }
 };
@@ -270,7 +270,7 @@ const putUsuario = async (req, res) => {
   } catch (erro) {
     console.log("Erro no update:", erro.message);
     return res.status(500).json({
-      mensagem: "Erro interno ao atualizar usuário.",
+      mensagem: "Não foi possível atualizar o usuário.",
     });
   }
 };
@@ -309,7 +309,7 @@ const desativarUsuario = async (req, res) => {
     console.log("Erro no alterar status:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro ao alterar status do usuário.",
+      mensagem: "Não foi possível alterar o status do usuário.",
     });
   }
 };

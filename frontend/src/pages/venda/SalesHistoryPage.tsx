@@ -150,7 +150,7 @@ function SaleDetails({
                   ))}
                 </ul>
               ) : (
-                <p className="m-0 py-3 text-sm text-[#6f6b61]">Itens não detalhados pela API.</p>
+                <p className="m-0 py-3 text-sm text-[#6f6b61]">Itens não disponíveis.</p>
               )}
             </section>
           </div>
@@ -458,7 +458,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
                           <p className="mt-0.5 text-[0.78rem] leading-snug text-[#6f6b61]">
                             {sale.items.length
                               ? `${sale.items.reduce((count, item) => count + item.quantity, 0)} itens`
-                              : 'Itens não detalhados pela API'}{' '}
+                              : 'Itens não disponíveis'}{' '}
                             · {sale.paymentMethod} ·{' '}
                             {new Date(sale.createdAt).toLocaleString('pt-BR', {
                               day: '2-digit',

@@ -40,7 +40,7 @@ const autenticar = async (req, res, next) => {
     next();
   } catch (erro) {
     console.error("Erro na autenticação:", erro.message);
-    return res.status(500).json({ mensagem: "Erro interno na autenticação" });
+    return res.status(500).json({ mensagem: "Não foi possível concluir a autenticação." });
   }
 };
 

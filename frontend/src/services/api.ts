@@ -8,7 +8,7 @@ const apiBaseUrl = configuredApiUrl || localDevelopmentUrl
 
 if (!apiBaseUrl) {
   throw new Error(
-    'VITE_API_URL precisa estar configurada durante o build para usar a API em produção.',
+    'O serviço não está configurado para esta instalação.',
   )
 }
 
@@ -52,11 +52,11 @@ export function apiErrorMessage(
 ): string {
   if (axios.isAxiosError(error)) {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-      return 'A API não respondeu em 20 segundos. Verifique a conexão com o backend.'
+      return 'O serviço demorou demais para responder. Tente novamente.'
     }
 
     if (!error.response) {
-      return 'Não foi possível conectar à API. Verifique a URL e a disponibilidade do backend.'
+      return 'Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.'
     }
 
     const responseData: unknown = error.response.data
@@ -64,7 +64,7 @@ export function apiErrorMessage(
       return responseData.mensagem
     }
 
-    return `A API recusou a solicitação (HTTP ${error.response.status}).`
+    return 'Não foi possível concluir a solicitação. Tente novamente.'
   }
 
   if (error instanceof Error) return error.message

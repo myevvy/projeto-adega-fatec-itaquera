@@ -156,7 +156,7 @@ function SupplierForm({ onCancel, onDone, onSave, supplier }: SupplierFormProps)
           {isEditing ? 'Editar fornecedor' : 'Novo fornecedor'}
         </legend>
 
-        <p className="text-xs text-muted">Os dados são salvos no banco de dados.</p>
+        <p className="text-xs text-muted">Os dados serão salvos no sistema.</p>
 
         <section className="space-y-4">
           <GroupTitle>Identificação</GroupTitle>

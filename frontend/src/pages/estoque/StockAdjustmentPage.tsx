@@ -2,19 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import StatusToast from '../../components/status-toast/StatusToast'
-import type { AppPath, Product, SetupData } from '../../types'
+import type { AppPath, Product, SetupData, StockMovement } from '../../types'
 
 type StockAdjustmentPageProps = {
   onNavigate: (path: AppPath) => void
-  onUpdate: (
-    product: Product,
-    movement?: {
-      tipo: 'entrada' | 'saida' | 'ajuste'
-      quantidadeMovimentada: number
-      motivo: string
-      observacao: string
-    },
-  ) => Promise<void>
+  onUpdate: (product: Product, movement?: StockMovement) => Promise<void>
   products: Product[]
   setupData: SetupData
 }
@@ -146,7 +138,14 @@ function StockAdjustmentPage({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!canSubmit || !selectedProduct || resultingStock === null) return
+    if (
+      !canSubmit ||
+      !selectedProduct ||
+      quantity === null ||
+      resultingStock === null
+    ) {
+      return
+    }
     setError('')
     setIsSaving(true)
     try {

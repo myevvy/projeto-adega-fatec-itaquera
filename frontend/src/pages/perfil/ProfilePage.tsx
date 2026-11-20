@@ -309,8 +309,8 @@ function ProfilePage({
     } catch (error) {
       setLogoutError(
         error instanceof Error
-          ? `Não foi possível encerrar a sessão no servidor: ${error.message}`
-          : 'Não foi possível encerrar a sessão no servidor.',
+          ? `Não foi possível encerrar a sessão: ${error.message}`
+          : 'Não foi possível encerrar a sessão.',
       )
     }
   }

@@ -7,7 +7,7 @@ const getEstabelecimento = async (_req, res) => {
   } catch (erro) {
     console.error("Erro ao buscar dados do estabelecimento:", erro.message);
     return res.status(500).json({
-      mensagem: "Erro interno ao recuperar os dados do estabelecimento.",
+      mensagem: "Não foi possível carregar os dados do estabelecimento.",
     });
   }
 };
@@ -45,7 +45,7 @@ const putEstabelecimento = async (req, res) => {
   } catch (erro) {
     console.error("Erro ao salvar dados do estabelecimento:", erro.message);
     return res.status(500).json({
-      mensagem: "Erro interno ao salvar os dados do estabelecimento.",
+      mensagem: "Não foi possível salvar os dados do estabelecimento.",
     });
   }
 };

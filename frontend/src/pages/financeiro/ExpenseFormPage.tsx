@@ -307,8 +307,7 @@ function ExpenseFormPage({
                     className="rounded-lg bg-soft px-4 py-3 text-xs text-muted"
                     role="status"
                   >
-                    Não há categorias disponíveis na resposta do backend para
-                    registrar uma despesa.
+                    Não há categorias disponíveis para registrar uma despesa.
                   </p>
                 )}
 

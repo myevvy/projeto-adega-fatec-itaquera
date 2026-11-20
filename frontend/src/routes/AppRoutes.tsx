@@ -76,6 +76,7 @@ import type {
   NotificationPreferences,
   SetupData,
 } from '../types/usuario'
+import type { StockMovement } from '../types'
 
 type AppRoutesProps = {
   onProductsChange: (products: Product[] | ((currentProducts: Product[]) => Product[])) => void
@@ -325,12 +326,7 @@ function AppRoutes({
   }
   const updateProduct = async (
     product: Product,
-    movement?: {
-      tipo: 'entrada' | 'saida' | 'ajuste'
-      quantidadeMovimentada: number
-      motivo: string
-      observacao: string
-    },
+    movement?: StockMovement,
   ) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
     const current = products.find((item) => item.id === product.id)
@@ -501,7 +497,7 @@ function AppRoutes({
         className="fixed inset-x-4 top-4 z-50 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow"
         role="alert"
       >
-        Alguns dados não puderam ser sincronizados com o backend: {dataLoadError}
+        Alguns dados não puderam ser atualizados: {dataLoadError}
       </p>
     )}
     <Routes>
@@ -900,7 +896,7 @@ type ProductRouteProps = {
   canManageProducts?: boolean
   onNavigate: (path: AppPath) => void
   onSave?: (product: Product, image?: File) => Promise<void>
-  onUpdate?: (product: Product) => Promise<void>
+  onUpdate?: (product: Product, movement?: StockMovement) => Promise<void>
   productById: (id: string) => Product | undefined
   setupData: SetupData
 }

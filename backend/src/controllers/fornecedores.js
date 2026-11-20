@@ -11,7 +11,7 @@ const getFornecedores = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar fornecedores... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar os fornecedores.",
     });
   }
 };
@@ -44,7 +44,7 @@ const postFornecedores = async (req, res) => {
     console.log("Erro no post fornecedores:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar fornecedor.",
+      mensagem: "Não foi possível cadastrar o fornecedor.",
     });
   }
 };
@@ -79,7 +79,7 @@ const putFornecedor = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao atualizar fornecedor... Comunique-nos sobre o ocorrido",
+        "Não foi possível atualizar o fornecedor.",
     });
   }
 };
@@ -101,7 +101,7 @@ const deleteFornecedor = async (req, res) => {
 
     if (!linhasAfetadas) {
       return res.status(404).json({
-        mensagem: "Erro ao deletar fornecedor.",
+        mensagem: "Não foi possível excluir o fornecedor.",
       });
     }
 
@@ -112,7 +112,7 @@ const deleteFornecedor = async (req, res) => {
     console.log("Erro no delete fornecedor:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao deletar fornecedor.",
+      mensagem: "Não foi possível excluir o fornecedor.",
     });
   }
 };

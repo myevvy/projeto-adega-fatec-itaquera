@@ -1,4 +1,10 @@
-import type { CardType, ExpenseRecord, Product, SaleRecord } from '../types'
+import type {
+  CardType,
+  ExpenseRecord,
+  Product,
+  SaleRecord,
+  StockMovement,
+} from '../types'
 import type {
   ExpenseCategoryOption,
   PurchasePaymentMethod,
@@ -28,18 +34,18 @@ function isRecord(value: unknown): value is ApiRecord {
 
 function requiredText(value: unknown, field: string): string {
   if (typeof value !== 'string' && typeof value !== 'number') {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   return String(value)
 }
 
 function requiredNumber(value: unknown, field: string): number {
   if (value === null || value === undefined || value === '') {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   return parsed
 }
@@ -50,7 +56,7 @@ function activeValue(value: unknown): boolean {
 
 function mapEstablishment(value: unknown): EstablishmentSettings {
   if (!isRecord(value)) {
-    throw new Error('A API retornou dados inválidos do estabelecimento.')
+    throw new Error('Não foi possível carregar os dados do estabelecimento.')
   }
   return {
     businessName: requiredText(
@@ -94,7 +100,7 @@ async function request(
 
 function records(value: unknown, entity: string): ApiRecord[] {
   if (!Array.isArray(value) || !value.every(isRecord)) {
-    throw new Error(`A API retornou uma lista inválida de ${entity}.`)
+    throw new Error(`Não foi possível carregar a lista de ${entity}.`)
   }
   return value
 }
@@ -215,7 +221,7 @@ export async function getEstablishment(
 ): Promise<EstablishmentSettings | null> {
   const result = await request('/estabelecimento', 'GET', token)
   if (!isRecord(result) || !('estabelecimento' in result)) {
-    throw new Error('A API retornou dados inválidos do estabelecimento.')
+    throw new Error('Não foi possível carregar os dados do estabelecimento.')
   }
   return result.estabelecimento === null
     ? null
@@ -232,7 +238,7 @@ export async function saveEstablishment(
     telefone_comercial: establishment.phone,
   })
   if (!isRecord(result) || !('estabelecimento' in result)) {
-    throw new Error('A API não confirmou o salvamento do estabelecimento.')
+    throw new Error('Não foi possível confirmar o salvamento do estabelecimento.')
   }
   return mapEstablishment(result.estabelecimento)
 }
@@ -264,7 +270,7 @@ export async function createProductCategory(
     { nome: name },
   )
   if (!isRecord(result) || !isRecord(result.categoria)) {
-    throw new Error('A API não retornou a categoria cadastrada.')
+    throw new Error('Não foi possível confirmar o cadastro da categoria.')
   }
   return mapProductCategory(result.categoria)
 }
@@ -307,7 +313,7 @@ export async function createProduct(
   body.set('imagem', productImage)
   const result = await request('/produtos', 'POST', token, {}, body)
   if (!isRecord(result) || !isRecord(result.produto)) {
-    throw new Error('A API não retornou o produto cadastrado.')
+    throw new Error('Não foi possível confirmar o cadastro do produto.')
   }
   return mapProduct(result.produto)
 }
@@ -337,12 +343,7 @@ export async function adjustProductStock(
   token: string,
   productId: number,
   quantity: number,
-  movement?: {
-    tipo: 'entrada' | 'saida' | 'ajuste'
-    quantidadeMovimentada: number
-    motivo: string
-    observacao: string
-  },
+  movement?: StockMovement,
 ): Promise<void> {
   await request(`/produtos/quantidade/${productId}`, 'PUT', token, {
     quantidade: quantity,
@@ -380,7 +381,7 @@ export async function saveSupplier(
   )
   if (!isNew) return supplier
   if (!isRecord(result) || !isRecord(result.fornecedor)) {
-    throw new Error('A API não retornou o fornecedor cadastrado.')
+    throw new Error('Não foi possível confirmar o cadastro do fornecedor.')
   }
   return mapSupplier(result.fornecedor)
 }
@@ -422,7 +423,7 @@ export async function createSale(
     })),
   })
   if (!isRecord(result) || !isRecord(result.venda)) {
-    throw new Error('A API não retornou a venda cadastrada.')
+    throw new Error('Não foi possível confirmar o cadastro da venda.')
   }
   const created = mapSale(result.venda)
   const items = Array.isArray(result.venda.itens)
@@ -472,7 +473,7 @@ export async function createPurchase(
     ],
   })
   if (!isRecord(result) || !isRecord(result.compra)) {
-    throw new Error('A API não retornou a compra cadastrada.')
+    throw new Error('Não foi possível confirmar o cadastro da compra.')
   }
   return mapPurchase(result.compra)
 }
@@ -520,7 +521,7 @@ export async function createExpenseCategory(
     { nome: name, tipo: type },
   )
   if (!isRecord(result) || !isRecord(result.categoria)) {
-    throw new Error('A API não retornou a categoria cadastrada.')
+    throw new Error('Não foi possível confirmar o cadastro da categoria.')
   }
   return mapExpenseCategory(result.categoria)
 }
@@ -537,7 +538,7 @@ export async function createExpense(
     data: expense.paidAt,
   })
   if (!isRecord(result) || !isRecord(result.despesa)) {
-    throw new Error('A API não retornou a despesa cadastrada.')
+    throw new Error('Não foi possível confirmar o cadastro da despesa.')
   }
   return mapExpense(result.despesa)
 }

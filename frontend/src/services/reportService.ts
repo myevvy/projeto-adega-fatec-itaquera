@@ -16,32 +16,32 @@ function isRecord(value: unknown): value is ApiRecord {
 
 function requiredRecord(value: unknown, field: string): ApiRecord {
   if (!isRecord(value)) {
-    throw new Error(`A API retornou um formato inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar os dados de ${field}.`)
   }
   return value
 }
 
 function requiredArray(value: unknown, field: string): unknown[] {
   if (!Array.isArray(value)) {
-    throw new Error(`A API retornou uma lista inválida para ${field}.`)
+    throw new Error(`Não foi possível carregar a lista de ${field}.`)
   }
   return value
 }
 
 function requiredText(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   return value
 }
 
 function requiredNumber(value: unknown, field: string): number {
   if (value === null || value === undefined || value === '') {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
-    throw new Error(`A API retornou um valor inválido para ${field}.`)
+    throw new Error(`Não foi possível interpretar ${field}.`)
   }
   return parsed
 }
@@ -58,7 +58,7 @@ function parseComparison(value: unknown): ReportComparison {
   const row = requiredRecord(value, 'comparação')
   const variation = row.variacaoPercentual
   if (variation !== null && typeof variation !== 'number') {
-    throw new Error('A API retornou uma variação percentual inválida.')
+    throw new Error('Não foi possível interpretar a variação percentual.')
   }
   return {
     atual: requiredNumber(row.atual, 'valor atual da comparação'),
@@ -72,7 +72,7 @@ function parseStockProduct(value: unknown): StockReportProduct {
   const row = requiredRecord(value, 'produto do estoque')
   const status = requiredText(row.statusEstoque, 'situação do estoque')
   if (status !== 'ZERADO' && status !== 'BAIXO' && status !== 'OK') {
-    throw new Error('A API retornou uma situação de estoque desconhecida.')
+    throw new Error('Não foi possível identificar a situação do estoque.')
   }
   return {
     produtoId: requiredNumber(row.produtoId, 'id do produto'),
@@ -305,10 +305,10 @@ function parseExpenseReport(value: unknown): ExpenseReport {
           formaPagamento !== null &&
           typeof formaPagamento !== 'string'
         ) {
-          throw new Error('A API retornou uma forma de pagamento inválida.')
+          throw new Error('Não foi possível interpretar a forma de pagamento.')
         }
         if (compraId !== null && typeof compraId !== 'number') {
-          throw new Error('A API retornou um vínculo de compra inválido.')
+          throw new Error('Não foi possível interpretar os dados da compra.')
         }
         return {
           id: requiredNumber(expense.id, 'id da despesa'),

@@ -156,7 +156,7 @@ function PurchasesPage({
 
       {purchaseToCancel && (
         <ConfirmDialog
-          description="O cancelamento removerá do estoque os itens dessa compra. Se parte deles já foi vendida, o backend poderá recusar a operação."
+          description="O cancelamento removerá do estoque os itens dessa compra. Se parte deles já foi vendida, a operação poderá não ser permitida."
           onCancel={() => setPurchaseToCancel(null)}
           onConfirm={() => void handleCancel()}
           title={isCancelling ? 'Cancelando compra...' : 'Cancelar compra?'}

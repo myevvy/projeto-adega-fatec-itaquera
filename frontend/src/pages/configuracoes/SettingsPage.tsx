@@ -125,7 +125,7 @@ function SettingsPage({
     setIsSaving(true)
     try {
       await onSave(form)
-      setMessage('Dados da adega salvos no banco de dados.')
+      setMessage('Dados da adega salvos com sucesso.')
     } catch (error) {
       setSaveError(
         error instanceof Error

@@ -11,7 +11,7 @@ const getDespesas = async (_req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar despesas... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar as despesas.",
     });
   }
 };
@@ -63,7 +63,7 @@ const postDespesas = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar despesa.",
+      mensagem: "Não foi possível cadastrar a despesa.",
     });
   }
 };
@@ -119,7 +119,7 @@ const estornarDespesa = async (req, res) => {
     console.error("Erro ao estornar despesa:", erro);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao estornar despesa.",
+      mensagem: "Não foi possível estornar a despesa.",
     });
   }
 };

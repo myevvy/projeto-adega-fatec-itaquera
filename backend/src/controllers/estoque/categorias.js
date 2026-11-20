@@ -6,7 +6,7 @@ const getCategorias = async (_req, res) => {
   } catch (erro) {
     console.error("Erro ao buscar categorias de produtos:", erro.message);
     return res.status(500).json({
-      mensagem: "Erro interno ao recuperar categorias de produtos.",
+      mensagem: "Não foi possível carregar as categorias.",
     });
   }
 };
@@ -28,7 +28,7 @@ const postCategoria = async (req, res) => {
   } catch (erro) {
     console.error("Erro ao cadastrar categoria de produto:", erro.message);
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar categoria de produto.",
+      mensagem: "Não foi possível cadastrar a categoria.",
     });
   }
 };

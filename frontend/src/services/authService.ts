@@ -83,7 +83,7 @@ async function requestJson(
       error.response?.status === 404
     ) {
       throw new Error(
-        'O backend não encontrou a rota de cadastro administrativo /cadastro.',
+        'Não foi possível concluir o cadastro administrativo.',
         { cause: error },
       )
     }
@@ -108,7 +108,7 @@ export async function login(email: string, senha: string): Promise<AuthSession> 
     typeof result.usuario.email !== 'string' ||
     typeof result.token !== 'string'
   ) {
-    throw new Error('A API retornou dados de login em um formato inesperado.')
+    throw new Error('Não foi possível concluir o acesso.')
   }
 
   const perfil = getTokenProfile(result.token)
@@ -131,7 +131,7 @@ export async function login(email: string, senha: string): Promise<AuthSession> 
 export async function listUsers(token: string): Promise<DirectoryUser[]> {
   const result = await requestJson('/usuarios', 'GET', { token })
   if (!Array.isArray(result)) {
-    throw new Error('A API retornou uma lista de usuários em formato inesperado.')
+    throw new Error('Não foi possível carregar a lista de usuários.')
   }
 
   return result.map((value) => {
@@ -147,7 +147,7 @@ export async function listUsers(token: string): Promise<DirectoryUser[]> {
         value.ativo !== 0 &&
         value.ativo !== 1)
     ) {
-      throw new Error('A API retornou um usuário em formato inesperado.')
+      throw new Error('Não foi possível carregar os dados do usuário.')
     }
 
     return {

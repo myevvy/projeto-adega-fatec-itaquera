@@ -266,7 +266,7 @@ function ExpenseReportPage({
 
       {expenseToCancel && (
         <ConfirmDialog
-          description="O estorno ficará registrado no banco e removerá esta despesa dos totais financeiros."
+          description="O estorno removerá esta despesa dos totais financeiros."
           onCancel={() => setExpenseToCancel(null)}
           onConfirm={() => void handleCancel()}
           title={isCancelling ? 'Estornando despesa...' : 'Estornar despesa?'}

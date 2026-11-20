@@ -19,7 +19,7 @@ async function register(req, res) {
       return res.status(400).json({ erro: 'Senha fraca (mínimo 6 caracteres).' });
     }
     console.error(err);
-    res.status(500).json({ erro: 'Erro ao cadastrar.' });
+    res.status(500).json({ erro: 'Não foi possível concluir o cadastro.' });
   }
 }
 

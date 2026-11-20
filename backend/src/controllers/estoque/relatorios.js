@@ -9,7 +9,7 @@ const getRelatorioEstoque = async (_req, res) => {
     console.error("Erro ao gerar relatório de estoque:", erro);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao gerar relatório de estoque.",
+      mensagem: "Não foi possível gerar o relatório de estoque.",
     });
   }
 };

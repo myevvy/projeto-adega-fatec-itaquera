@@ -85,3 +85,10 @@ export type Product = {
   description: string
   active: boolean
 }
+
+export type StockMovement = {
+  tipo: 'entrada' | 'saida' | 'ajuste'
+  quantidadeMovimentada: number
+  motivo: string
+  observacao: string
+}
