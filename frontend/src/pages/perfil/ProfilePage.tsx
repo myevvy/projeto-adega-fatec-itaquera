@@ -373,9 +373,6 @@ function ProfilePage({
                   onClick={() => setConfirmLogout(true)}
                   variant="danger"
                 />
-                <p className="px-1 pt-2 text-xs text-[#8a8678]">
-                  A sessão é validada pelo backend e expira após oito horas.
-                </p>
               </div>
             )}
 
