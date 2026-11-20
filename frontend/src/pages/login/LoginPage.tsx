@@ -40,7 +40,7 @@ function LoginPage({ onForgotPassword, onLogin }: LoginPageProps) {
     if (loggedOut) {
       navigate(location.pathname, { replace: true, state: null })
     }
-  }, [])
+  }, [loggedOut, location.pathname, navigate])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
