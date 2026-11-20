@@ -1,5 +1,19 @@
 # API do backend
 
+## Categorias de produtos e despesas
+
+As rotas abaixo exigem autenticação. Para criar categorias, também é necessário
+perfil de administrador.
+
+- `GET /categorias/produtos` lista as categorias de produto ativas.
+- `POST /categorias/produtos` recebe `{ "nome": "Tintos" }` e cadastra ou
+  reativa uma categoria de produto.
+- `GET /categorias/despesas` lista as categorias de despesa ativas, incluindo
+  seus tipos.
+- `POST /categorias/despesas` recebe `{ "nome": "Manutenção", "tipo": "..." }`
+  e cadastra ou reativa uma categoria de despesa. O tipo deve corresponder a
+  um tipo já utilizado pelas categorias existentes.
+
 ## Relatório de vendas
 
 `GET /relatorios/vendas` retorna dados de vendas concluídas para uso em cards e gráficos. A rota exige autenticação e perfil de administrador.

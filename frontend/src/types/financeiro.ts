@@ -19,6 +19,12 @@ export type ExpenseCategory =
   | 'Compras de fornecedores'
   | 'Outras despesas'
 
+export type ExpenseCategoryOption = {
+  id: number
+  name: string
+  type: string
+}
+
 export type ExpenseRecord = {
   id: string
   description: string

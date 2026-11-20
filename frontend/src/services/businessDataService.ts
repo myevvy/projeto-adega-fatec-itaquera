@@ -1,6 +1,10 @@
 import type { ExpenseRecord, Product, SaleRecord } from '../types'
-import type { PurchaseRecord } from '../types/financeiro'
+import type {
+  ExpenseCategoryOption,
+  PurchaseRecord,
+} from '../types/financeiro'
 import type { Supplier, SupplierPurchase } from '../types/fornecedor'
+import type { ProductCategory } from '../types/produto'
 import { api, apiErrorMessage } from './api'
 
 type ApiRecord = Record<string, unknown>
@@ -149,6 +153,38 @@ function mapExpense(row: ApiRecord): ExpenseRecord {
 
 export async function listProducts(token: string): Promise<Product[]> {
   return records(await request('/produtos', 'GET', token), 'produtos').map(mapProduct)
+}
+
+function mapProductCategory(row: ApiRecord): ProductCategory {
+  return {
+    id: requiredNumber(row.id, 'id da categoria do produto'),
+    name: requiredText(row.nome, 'nome da categoria do produto'),
+  }
+}
+
+export async function listProductCategories(
+  token: string,
+): Promise<ProductCategory[]> {
+  return records(
+    await request('/categorias/produtos', 'GET', token),
+    'categorias de produtos',
+  ).map(mapProductCategory)
+}
+
+export async function createProductCategory(
+  token: string,
+  name: string,
+): Promise<ProductCategory> {
+  const result = await request(
+    '/categorias/produtos',
+    'POST',
+    token,
+    { nome: name },
+  )
+  if (!isRecord(result) || !isRecord(result.categoria)) {
+    throw new Error('A API não retornou a categoria cadastrada.')
+  }
+  return mapProductCategory(result.categoria)
 }
 
 export async function createProduct(
@@ -361,11 +397,38 @@ export async function listExpenses(token: string): Promise<ExpenseRecord[]> {
   ).map(mapExpense)
 }
 
-export function getExpenseCategoryId(
-  expenses: ExpenseRecord[],
-  category: string,
-): number | undefined {
-  return expenses.find((expense) => expense.category === category)?.categoryId
+function mapExpenseCategory(row: ApiRecord): ExpenseCategoryOption {
+  return {
+    id: requiredNumber(row.id, 'id da categoria da despesa'),
+    name: requiredText(row.nome, 'nome da categoria da despesa'),
+    type: requiredText(row.tipo, 'tipo da categoria da despesa'),
+  }
+}
+
+export async function listExpenseCategories(
+  token: string,
+): Promise<ExpenseCategoryOption[]> {
+  return records(
+    await request('/categorias/despesas', 'GET', token),
+    'categorias de despesas',
+  ).map(mapExpenseCategory)
+}
+
+export async function createExpenseCategory(
+  token: string,
+  name: string,
+  type: string,
+): Promise<ExpenseCategoryOption> {
+  const result = await request(
+    '/categorias/despesas',
+    'POST',
+    token,
+    { nome: name, tipo: type },
+  )
+  if (!isRecord(result) || !isRecord(result.categoria)) {
+    throw new Error('A API não retornou a categoria cadastrada.')
+  }
+  return mapExpenseCategory(result.categoria)
 }
 
 export async function createExpense(

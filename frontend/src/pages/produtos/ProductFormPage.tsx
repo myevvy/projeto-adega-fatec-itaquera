@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import type { AppPath, Product, SetupData } from '../../types'
+import type { ProductCategory } from '../../types/produto'
 
 type ProductFormPageProps = {
-  categories: string[]
+  categories: ProductCategory[]
+  onCreateCategory: (name: string) => Promise<ProductCategory>
   onNavigate: (path: AppPath) => void
   onSave: (product: Product, image?: File) => Promise<void>
   product?: Product
@@ -70,6 +72,7 @@ function MicButton({
 
 function ProductFormPage({
   categories,
+  onCreateCategory,
   onNavigate,
   onSave,
   product,
@@ -83,6 +86,10 @@ function ProductFormPage({
   const [photoPreview, setPhotoPreview] = useState('')
   const [photoError, setPhotoError] = useState('')
   const [listening, setListening] = useState<DictationField | null>(null)
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+  const [categoryError, setCategoryError] = useState('')
   const [form, setForm] = useState({
     name: product?.name ?? '',
     category: product?.category ?? '',
@@ -136,6 +143,14 @@ function ProductFormPage({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const selectedCategory = categories.find(
+      (category) =>
+        category.id.toString() === form.category || category.name === form.category,
+    )
+    if (!selectedCategory) {
+      setSaveError('Selecione uma categoria existente.')
+      return
+    }
     setSaveError('')
     setSaved(false)
     setIsSaving(true)
@@ -144,7 +159,7 @@ function ProductFormPage({
         {
           ...form,
           name: form.name.trim(),
-          category: form.category.trim(),
+          category: selectedCategory.id.toString(),
           description: form.description.trim(),
           id: product?.id ?? Date.now(),
           active: product?.active ?? true,
@@ -160,6 +175,29 @@ function ProductFormPage({
       setIsSaving(false)
     }
   }
+
+  const createCategory = async () => {
+    setCategoryError('')
+    setIsCreatingCategory(true)
+    try {
+      const category = await onCreateCategory(newCategoryName.trim())
+      update('category', category.id.toString())
+      setNewCategoryName('')
+      setCreatingCategory(false)
+    } catch (error) {
+      setCategoryError(
+        error instanceof Error ? error.message : 'Não foi possível criar a categoria.',
+      )
+    } finally {
+      setIsCreatingCategory(false)
+    }
+  }
+
+  const selectedCategoryId =
+    categories.find((category) => category.name === form.category)?.id.toString() ??
+    (categories.some((category) => category.id.toString() === form.category)
+      ? form.category
+      : '')
 
   return (
     <div className="min-h-dvh bg-[#FAF8F3] text-[#2B2B26] lg:flex">
@@ -252,23 +290,69 @@ function ProductFormPage({
                 <label className={labelClass} htmlFor="product-category">
                   Categoria
                 </label>
-                <input
+                <select
                   className={inputClass}
                   id="product-category"
-                  list="product-categories"
-                  onChange={(event) => update('category', event.target.value)}
-                  placeholder="Ex: Tintos"
+                  onChange={(event) => {
+                    if (event.target.value === '__create_category__') {
+                      setCreatingCategory(true)
+                      setCategoryError('')
+                      return
+                    }
+                    update('category', event.target.value)
+                  }}
                   required
-                  value={form.category}
-                />
-                <datalist id="product-categories">
+                  value={selectedCategoryId}
+                >
+                  <option value="">Selecione uma categoria</option>
                   {categories.map((category) => (
-                    <option key={category} value={category} />
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
                   ))}
-                </datalist>
+                  <option value="__create_category__">+ Criar categoria...</option>
+                </select>
                 <p className="mt-1.5 text-xs text-[#8A8A80]">
-                  Use uma categoria já cadastrada e ativa no sistema.
+                  Selecione uma categoria cadastrada ou crie uma nova.
                 </p>
+                {creatingCategory && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <input
+                      aria-label="Nome da nova categoria"
+                      autoFocus
+                      className={inputClass}
+                      onChange={(event) => setNewCategoryName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') event.preventDefault()
+                      }}
+                      placeholder="Nome da nova categoria"
+                      value={newCategoryName}
+                    />
+                    <button
+                      className="h-11 rounded-xl bg-[#3B4A2E] px-4 text-sm font-medium text-white disabled:opacity-60"
+                      disabled={!newCategoryName.trim() || isCreatingCategory}
+                      onClick={() => void createCategory()}
+                      type="button"
+                    >
+                      {isCreatingCategory ? 'Criando...' : 'Criar'}
+                    </button>
+                    <button
+                      className="h-11 rounded-xl px-3 text-sm text-[#4A4A42]"
+                      onClick={() => {
+                        setCreatingCategory(false)
+                        setCategoryError('')
+                      }}
+                      type="button"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {categoryError && (
+                  <p className="mt-2 text-sm text-red-700" role="alert">
+                    {categoryError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -390,7 +474,7 @@ function ProductFormPage({
             )}
             <button
               className="h-12 w-full rounded-xl bg-[#3B4A2E] text-base font-medium text-white transition hover:bg-[#2F3C24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B4A2E] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={Boolean(photoError) || isSaving}
+              disabled={Boolean(photoError) || isSaving || isCreatingCategory}
               type="submit"
             >
               {isSaving

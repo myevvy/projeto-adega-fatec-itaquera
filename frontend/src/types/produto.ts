@@ -10,3 +10,8 @@ export type Product = {
   description: string
   active: boolean
 }
+
+export type ProductCategory = {
+  id: number
+  name: string
+}

@@ -17,6 +17,46 @@ const getDespesas = async () => {
   return rows;
 };
 
+const getCategorias = async () => {
+  const [rows] = await db.query(
+    `SELECT id, nome, tipo
+       FROM categoria_despesa
+      WHERE ativa = TRUE
+      ORDER BY nome`,
+  );
+  return rows;
+};
+
+const postCategoria = async (nome, tipo) => {
+  const [existentes] = await db.query(
+    "SELECT id, ativa FROM categoria_despesa WHERE nome = ?",
+    [nome],
+  );
+
+  if (existentes.length > 0) {
+    if (existentes[0].ativa) return null;
+    await db.query(
+      "UPDATE categoria_despesa SET ativa = TRUE, tipo = ? WHERE id = ?",
+      [tipo, existentes[0].id],
+    );
+    return getCategoria(existentes[0].id);
+  }
+
+  const [result] = await db.query(
+    "INSERT INTO categoria_despesa (nome, tipo) VALUES (?, ?)",
+    [nome, tipo],
+  );
+  return getCategoria(result.insertId);
+};
+
+const getCategoria = async (id) => {
+  const [rows] = await db.query(
+    "SELECT id, nome, tipo FROM categoria_despesa WHERE id = ?",
+    [id],
+  );
+  return rows[0];
+};
+
 const getDespesaID = async (id) => {
   const [rows] = await db.query(`${SELECT_BASE} WHERE d.id = ?`, [id]);
   return rows[0] || null;
@@ -64,6 +104,8 @@ const estornarDespesa = async (id) => {
 
 export default {
   getDespesas,
+  getCategorias,
+  postCategoria,
   getDespesaID,
   postDespesa,
   estornarDespesa,

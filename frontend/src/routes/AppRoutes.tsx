@@ -15,14 +15,17 @@ import {
   cancelPurchase,
   cancelSale,
   createExpense,
+  createExpenseCategory,
   createProduct,
+  createProductCategory,
   createPurchase,
   createSale,
   deactivateProduct,
   deactivateSupplier,
-  getExpenseCategoryId,
   listExpenses,
+  listExpenseCategories,
   listProducts,
+  listProductCategories,
   listPurchases,
   listSales,
   listSuppliers,
@@ -56,8 +59,13 @@ import PurchaseFormPage from '../pages/compras/PurchaseFormPage'
 import ForgotPasswordPage from '../pages/esqueci-senha/ForgotPasswordPage'
 import UsersPage from '../pages/usuarios/UsersPage'
 import type { Supplier } from '../types/fornecedor'
-import type { ExpenseRecord, PurchaseRecord, SaleRecord } from '../types/financeiro'
-import type { Product } from '../types/produto'
+import type {
+  ExpenseCategoryOption,
+  ExpenseRecord,
+  PurchaseRecord,
+  SaleRecord,
+} from '../types/financeiro'
+import type { Product, ProductCategory } from '../types/produto'
 import type { AppPath } from '../types/sistema'
 import type {
   NotificationPreferences,
@@ -109,6 +117,22 @@ function AppRoutes({
   const location = useLocation()
   const { login, logout, session } = useAuth()
   const [dataLoadError, setDataLoadError] = useState('')
+  const [productCategoryData, setProductCategoryData] = useState<{
+    token: string
+    categories: ProductCategory[]
+  }>({ token: '', categories: [] })
+  const [expenseCategoryData, setExpenseCategoryData] = useState<{
+    token: string
+    categories: ExpenseCategoryOption[]
+  }>({ token: '', categories: [] })
+  const productCategories =
+    productCategoryData.token === session?.token
+      ? productCategoryData.categories
+      : []
+  const expenseCategories =
+    expenseCategoryData.token === session?.token
+      ? expenseCategoryData.categories
+      : []
   const publicPaths = ['/', '/login', '/esqueci-senha']
 
   useEffect(() => {
@@ -136,12 +160,21 @@ function AppRoutes({
         listPurchases(session.token),
         listExpenses(session.token),
         listSuppliers(session.token),
+        listProductCategories(session.token),
+        listExpenseCategories(session.token),
       ])
       if (!active) return
 
       const errors: string[] = []
-      const [productsResult, salesResult, purchasesResult, expensesResult, suppliersResult] =
-        results
+      const [
+        productsResult,
+        salesResult,
+        purchasesResult,
+        expensesResult,
+        suppliersResult,
+        productCategoriesResult,
+        expenseCategoriesResult,
+      ] = results
       if (productsResult.status === 'fulfilled') {
         onProductsChange(productsResult.value)
       } else {
@@ -174,6 +207,22 @@ function AppRoutes({
         )
       } else {
         errors.push(`fornecedores: ${suppliersResult.reason instanceof Error ? suppliersResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (productCategoriesResult.status === 'fulfilled') {
+        setProductCategoryData({
+          token: session.token,
+          categories: productCategoriesResult.value,
+        })
+      } else {
+        errors.push(`categorias de produtos: ${productCategoriesResult.reason instanceof Error ? productCategoriesResult.reason.message : 'falha ao carregar'}`)
+      }
+      if (expenseCategoriesResult.status === 'fulfilled') {
+        setExpenseCategoryData({
+          token: session.token,
+          categories: expenseCategoriesResult.value,
+        })
+      } else {
+        errors.push(`categorias de despesas: ${expenseCategoriesResult.reason instanceof Error ? expenseCategoriesResult.reason.message : 'falha ao carregar'}`)
       }
       setDataLoadError(errors.join(' · '))
     }
@@ -241,6 +290,20 @@ function AppRoutes({
       onProductsChange((currentProducts) => [...currentProducts, created])
     }
   }
+  const saveProductCategory = async (name: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const category = await createProductCategory(session.token, name)
+    setProductCategoryData((current) => {
+      const categories = current.token === session.token ? current.categories : []
+      return {
+        token: session.token,
+        categories: categories.some((item) => item.id === category.id)
+          ? categories
+          : [...categories, category].sort((a, b) => a.name.localeCompare(b.name)),
+      }
+    })
+    return category
+  }
   const updateProduct = async (product: Product) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
     const current = products.find((item) => item.id === product.id)
@@ -293,14 +356,24 @@ function AppRoutes({
   }
   const saveExpense = async (expense: ExpenseRecord) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
-    const categoryId = getExpenseCategoryId(expenses, expense.category)
-    if (!categoryId) {
-      throw new Error(
-        'O backend não disponibiliza a lista de categorias. Não é possível identificar o ID desta categoria para salvar a despesa.',
-      )
-    }
+    const categoryId = expense.categoryId
+    if (categoryId === undefined) throw new Error('Selecione uma categoria existente.')
     const created = await createExpense(session.token, expense, categoryId)
     onExpenseCreated(created)
+  }
+  const saveExpenseCategory = async (name: string, type: string) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    const category = await createExpenseCategory(session.token, name, type)
+    setExpenseCategoryData((current) => {
+      const categories = current.token === session.token ? current.categories : []
+      return {
+        token: session.token,
+        categories: categories.some((item) => item.id === category.id)
+          ? categories
+          : [...categories, category].sort((a, b) => a.name.localeCompare(b.name)),
+      }
+    })
+    return category
   }
   const handleCancelSale = async (saleId: string) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
@@ -367,22 +440,6 @@ function AppRoutes({
       currentSuppliers.filter((supplier) => supplier.id !== supplierId),
     )
   }
-  const expenseCategories = expenses.reduce<{ id: number; name: string }[]>(
-    (categories, expense) => {
-      if (
-        typeof expense.categoryId === 'number' &&
-        !categories.some((category) => category.id === expense.categoryId)
-      ) {
-        categories.push({
-          id: expense.categoryId,
-          name: expense.category,
-        })
-      }
-      return categories
-    },
-    [],
-  )
-
   return (
     <>
     {session && dataLoadError && (
@@ -451,6 +508,7 @@ function AppRoutes({
         element={
           <ExpenseFormPage
             categories={expenseCategories}
+            onCreateCategory={saveExpenseCategory}
             onNavigate={navigateTo}
             onSave={saveExpense}
             setupData={setupData}
@@ -566,7 +624,8 @@ function AppRoutes({
         element={
           isAdministrator ? (
             <ProductFormPage
-              categories={[...new Set(products.map((product) => product.category))]}
+              categories={productCategories}
+              onCreateCategory={saveProductCategory}
               onNavigate={navigateTo}
               onSave={saveProduct}
               setupData={setupData}
@@ -581,7 +640,8 @@ function AppRoutes({
         element={
           isAdministrator ? (
             <ProductEditRoute
-              categories={[...new Set(products.map((product) => product.category))]}
+              categories={productCategories}
+              onCreateCategory={saveProductCategory}
               onNavigate={navigateTo}
               onSave={saveProduct}
               productById={productById}
@@ -781,7 +841,8 @@ function SupplierDetailRoute({
 }
 
 type ProductRouteProps = {
-  categories?: string[]
+  categories?: ProductCategory[]
+  onCreateCategory?: (name: string) => Promise<ProductCategory>
   canManageProducts?: boolean
   onNavigate: (path: AppPath) => void
   onSave?: (product: Product, image?: File) => Promise<void>
@@ -792,6 +853,7 @@ type ProductRouteProps = {
 
 function ProductEditRoute({
   categories,
+  onCreateCategory,
   onNavigate,
   onSave,
   productById,
@@ -799,10 +861,13 @@ function ProductEditRoute({
 }: ProductRouteProps) {
   const { productId } = useParams()
   const product = productId ? productById(productId) : undefined
-  if (!product || !onSave) return <Navigate replace to="/produtos" />
+  if (!product || !onSave || !onCreateCategory) {
+    return <Navigate replace to="/produtos" />
+  }
   return (
     <ProductFormPage
       categories={categories ?? []}
+      onCreateCategory={onCreateCategory}
       onNavigate={onNavigate}
       onSave={onSave}
       product={product}
