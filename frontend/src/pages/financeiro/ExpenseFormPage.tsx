@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, ExpenseRecord, SetupData } from '../../types'
 import type { ExpenseCategoryOption } from '../../types/financeiro'
 
@@ -9,6 +8,9 @@ function getLocalDateInputValue(date: Date) {
   localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset())
   return localDate.toISOString().slice(0, 10)
 }
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 
 type ExpenseFormPageProps = {
   categories: ExpenseCategoryOption[]
@@ -21,8 +23,14 @@ type ExpenseFormPageProps = {
   setupData: SetupData
 }
 
+type SavedExpense = {
+  description: string
+  amount: number
+  category: string
+}
+
 const fieldClass =
-  'w-full rounded-xl border border-line bg-field px-4 py-3 text-sm text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-60'
+  'w-full min-w-0 appearance-none rounded-xl border border-line bg-field px-4 py-3 text-base text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-60 sm:text-sm'
 
 const labelClass = 'block text-sm text-muted'
 
@@ -43,6 +51,7 @@ function ExpenseFormPage({
   const [isCreatingCategory, setIsCreatingCategory] = useState(false)
   const [categoryError, setCategoryError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [lastSaved, setLastSaved] = useState<SavedExpense | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -66,14 +75,20 @@ function ExpenseFormPage({
     setError('')
     setIsSaving(true)
     try {
+      const trimmedDescription = description.trim()
       await onSave({
         id: crypto.randomUUID(),
-        description: description.trim(),
+        description: trimmedDescription,
         category: selectedCategory.name,
         categoryId: selectedCategory.id,
         amount: numericAmount,
         paidAt,
         observation: '',
+      })
+      setLastSaved({
+        description: trimmedDescription,
+        amount: numericAmount,
+        category: selectedCategory.name,
       })
       setSaved(true)
       setAmount('')
@@ -114,23 +129,23 @@ function ExpenseFormPage({
   const categoryTypes = [...new Set(categories.map((option) => option.type))]
 
   return (
-    <main className="min-h-screen bg-page font-sans text-ink antialiased lg:flex">
+    <main className="min-h-dvh bg-page font-sans text-ink antialiased lg:flex">
       <AppSidebar
         currentPage="financeiro"
         onNavigate={onNavigate}
         userName={setupData.adminName}
       />
 
-      <section className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:px-8 sm:py-10">
+      <section className="mx-auto w-full min-w-0 max-w-xl flex-1 px-4 pb-32 pt-5 sm:px-8 sm:pb-28 sm:pt-10">
         <button
-          className="inline-flex items-center gap-2 rounded-md text-sm text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="-ml-1 inline-flex items-center gap-2 rounded-md px-1 py-2 text-sm text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           onClick={() => onNavigate('financeiro')}
           type="button"
         >
           <span aria-hidden="true">←</span> Voltar para financeiro
         </button>
 
-        <div className="mt-4 rounded-3xl bg-card sm:border sm:border-line sm:p-8 sm:shadow-sm">
+        <div className="mt-2 rounded-3xl bg-card sm:mt-4 sm:border sm:border-line sm:p-8 sm:shadow-sm">
           <h1 className="text-2xl font-semibold sm:text-3xl">
             Registrar Despesa
           </h1>
@@ -139,12 +154,13 @@ function ExpenseFormPage({
           </p>
 
           <form className="mt-6 space-y-5" onSubmit={submit}>
-            <label className="block cursor-text rounded-2xl bg-soft px-5 py-4">
+            <label className="block cursor-text rounded-2xl bg-soft px-4 py-4 sm:px-5">
               <span className={labelClass}>Valor</span>
               <span className="mt-1 flex items-baseline gap-2">
                 <span className="text-base font-medium text-muted">R$</span>
                 <input
-                  className="w-full bg-transparent text-3xl font-bold tracking-tight text-ink placeholder:text-muted/50 focus:outline-none sm:text-4xl"
+                  className="w-full min-w-0 bg-transparent text-3xl font-bold tracking-tight text-ink placeholder:text-muted/50 focus:outline-none sm:text-4xl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  inputMode="decimal"
                   min="0.01"
                   onChange={(event) => {
                     setAmount(event.target.value)
@@ -230,9 +246,9 @@ function ExpenseFormPage({
                     Não foi possível identificar os tipos existentes. Atualize as categorias antes de criar outra.
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <button
-                    className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-ink disabled:opacity-50"
+                    className="rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-brand-ink transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:py-2"
                     disabled={
                       !newCategoryName.trim() ||
                       !newCategoryType ||
@@ -244,7 +260,7 @@ function ExpenseFormPage({
                     {isCreatingCategory ? 'Criando...' : 'Criar categoria'}
                   </button>
                   <button
-                    className="rounded-xl px-4 py-2 text-sm text-muted"
+                    className="rounded-xl px-4 py-3 text-sm text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:py-2"
                     onClick={() => {
                       setCreatingCategory(false)
                       setCategoryError('')
@@ -275,7 +291,7 @@ function ExpenseFormPage({
             <label className="block space-y-2">
               <span className={labelClass}>Data do Pagamento</span>
               <input
-                className={fieldClass}
+                className={`${fieldClass} min-h-12`}
                 onChange={(event) => setPaidAt(event.target.value)}
                 required
                 type="date"
@@ -318,15 +334,53 @@ function ExpenseFormPage({
             </p>
           )}
         </div>
-
-        {saved && (
-          <StatusToast
-            message="A despesa foi salva no banco de dados."
-            onClose={() => setSaved(false)}
-            title="Despesa registrada com sucesso!"
-          />
-        )}
       </section>
+
+      {saved && lastSaved && (
+        <div
+          className="pointer-events-none fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-96"
+        >
+          <div
+            aria-live="polite"
+            className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-line bg-card p-4 shadow-lg"
+            role="status"
+          >
+            <span
+              aria-hidden="true"
+              className="grid size-9 shrink-0 place-items-center rounded-full bg-soft text-brand"
+            >
+              <svg
+                className="size-5"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="m5 12.5 4.5 4.5L19 7.5" />
+              </svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Despesa registrada com sucesso!</p>
+              <p className="mt-0.5 break-words text-sm text-muted">
+                {lastSaved.description} · {formatCurrency(lastSaved.amount)}
+              </p>
+              <p className="mt-0.5 break-words text-xs text-muted">
+                {lastSaved.category} · Voltando ao Financeiro…
+              </p>
+            </div>
+            <button
+              aria-label="Fechar mensagem e continuar nesta tela"
+              className="-mr-1 -mt-1 grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              onClick={() => setSaved(false)}
+              type="button"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">×</span>
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
