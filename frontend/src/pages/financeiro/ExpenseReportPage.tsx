@@ -102,14 +102,14 @@ function ExpenseReportPage({
   }
 
   return (
-    <main className="min-h-screen bg-page font-sans text-ink antialiased lg:flex">
+    <main className="min-h-dvh bg-page font-sans text-ink antialiased lg:flex">
       <AppSidebar
         currentPage="financeiro"
         onNavigate={onNavigate}
         userName={setupData.adminName}
       />
 
-      <section className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+      <section className="mx-auto w-full min-w-0 max-w-5xl flex-1 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
         <button
           className="inline-flex items-center gap-2 rounded-md text-sm text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           onClick={() => onNavigate('financeiro')}
@@ -118,20 +118,24 @@ function ExpenseReportPage({
           <span aria-hidden="true">←</span> Voltar para financeiro
         </button>
 
-        <header className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <header className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <h1 className="text-2xl font-semibold sm:text-3xl">
             Relatório de Despesas
           </h1>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <SalesPeriodFilter onChange={setPeriod} value={period} />
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-ink transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 active:scale-[.99]"
-              onClick={exportReport}
-              type="button"
-            >
-              Exportar relatório
-            </button>
+
+          <div className="order-2 min-w-0 max-w-full overflow-x-auto sm:order-none sm:col-span-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="w-max min-w-full">
+              <SalesPeriodFilter onChange={setPeriod} value={period} />
+            </div>
           </div>
+
+          <button
+            className="order-3 inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-ink transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 active:scale-[.99] sm:order-none sm:row-start-1 sm:col-start-2"
+            onClick={exportReport}
+            type="button"
+          >
+            Exportar relatório
+          </button>
         </header>
 
         {error && (
@@ -153,10 +157,10 @@ function ExpenseReportPage({
           </strong>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-5">
+        <div className="mt-6 grid gap-6 xl:grid-cols-5">
           <section
             aria-labelledby="expense-categories-heading"
-            className="rounded-2xl border border-line bg-card p-5 sm:p-6 lg:col-span-2 lg:self-start"
+            className="min-w-0 rounded-2xl border border-line bg-card p-5 sm:p-6 xl:col-span-2 xl:self-start"
           >
             <h2
               className="text-base font-semibold sm:text-lg"
@@ -171,8 +175,8 @@ function ExpenseReportPage({
                 return (
                   <li key={category}>
                     <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-medium">{category}</span>
-                      <span className="shrink-0 text-muted">
+                      <span className="min-w-0 break-words font-medium">{category}</span>
+                      <span className="shrink-0 whitespace-nowrap text-muted">
                         {formatCurrency(amount)} · {percent}%
                       </span>
                     </div>
@@ -193,7 +197,7 @@ function ExpenseReportPage({
 
           <section
             aria-labelledby="expense-history-heading"
-            className="rounded-2xl border border-line bg-card p-5 sm:p-6 lg:col-span-3"
+            className="min-w-0 rounded-2xl border border-line bg-card p-5 sm:p-6 xl:col-span-3"
           >
             <h2
               className="text-base font-semibold sm:text-lg"
@@ -233,7 +237,7 @@ function ExpenseReportPage({
                       )}
                     </div>
 
-                    <div className="ml-12 flex w-full items-center justify-between gap-3 sm:ml-0 sm:w-auto sm:justify-end">
+                    <div className="ml-12 flex w-full items-center justify-between gap-3 sm:ml-0 sm:w-auto sm:shrink-0 sm:justify-end">
                       <strong className="whitespace-nowrap text-sm font-semibold text-red-700 dark:text-red-300">
                         − {formatCurrency(expense.amount)}
                       </strong>
