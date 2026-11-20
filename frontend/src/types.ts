@@ -56,6 +56,7 @@ export type SetupData = {
 }
 
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão'
+export type CardType = 'CREDITO' | 'DEBITO'
 
 export type SaleRecord = {
   id: string
@@ -67,6 +68,7 @@ export type SaleRecord = {
     unitPrice: number
   }[]
   paymentMethod: PaymentMethod | 'Não informado'
+  cardType?: CardType
   total: number
   status?: string
 }

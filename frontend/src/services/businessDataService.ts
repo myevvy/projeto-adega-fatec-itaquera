@@ -1,4 +1,4 @@
-import type { ExpenseRecord, Product, SaleRecord } from '../types'
+import type { CardType, ExpenseRecord, Product, SaleRecord } from '../types'
 import type {
   ExpenseCategoryOption,
   PurchasePaymentMethod,
@@ -119,11 +119,16 @@ function mapSale(row: ApiRecord): SaleRecord {
         : method === 'DINHEIRO'
           ? 'Dinheiro'
           : 'Não informado'
+  const cardType: CardType | undefined =
+    row.tipo_cartao === 'CREDITO' || row.tipo_cartao === 'DEBITO'
+        ? row.tipo_cartao
+        : undefined
   return {
     id: requiredText(row.id, 'id da venda'),
     createdAt: requiredText(row.data_hora, 'data da venda'),
     items: [],
     paymentMethod,
+    cardType,
     total: requiredNumber(row.total, 'total da venda'),
     status: typeof row.status === 'string' ? row.status : 'CONCLUIDA',
   }
@@ -342,6 +347,7 @@ export async function createSale(
       sale.paymentMethod === 'Cartão'
         ? 'CARTAO'
         : sale.paymentMethod.toUpperCase(),
+    tipo_cartao: sale.paymentMethod === 'Cartão' ? sale.cardType ?? null : null,
     itens: sale.items.map((item) => ({
       produto_id: item.productId,
       quantidade: item.quantity,

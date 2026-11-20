@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
-import type { AppPath, PaymentMethod, Product, SaleRecord } from '../../types'
+import type {
+  AppPath,
+  CardType,
+  PaymentMethod,
+  Product,
+  SaleRecord,
+} from '../../types'
 
 type NewSalePageProps = {
   onNavigate: (path: AppPath) => void
@@ -135,12 +141,14 @@ function NewSalePage({
   const [cart, setCart] = useState<Record<number, number>>({})
   const [discountInput, setDiscountInput] = useState<string | null>(null)
   const [payment, setPayment] = useState<PaymentMethod | null>(null)
+  const [cardType, setCardType] = useState<CardType | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const [registered, setRegistered] = useState<{
     total: number
     payment: PaymentMethod
+    cardType: CardType | null
     items: number
   } | null>(null)
 
@@ -202,6 +210,7 @@ function NewSalePage({
   const canConfirm =
     itemCount > 0 &&
     payment !== null &&
+    (payment !== 'Cartão' || cardType !== null) &&
     !submitting &&
     cartItems.every(({ product, quantity }) => quantity <= product.stock)
 
@@ -220,9 +229,10 @@ function NewSalePage({
           unitPrice: product.price,
         })),
         paymentMethod: payment,
+        cardType: payment === 'Cartão' ? cardType ?? undefined : undefined,
         total,
       })
-      setRegistered({ total, payment, items: itemCount })
+      setRegistered({ total, payment, cardType, items: itemCount })
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -238,6 +248,7 @@ function NewSalePage({
     setCart({})
     setDiscountInput(null)
     setPayment(null)
+    setCardType(null)
     setSearch('')
     setCategory('Todos')
     setRegistered(null)
@@ -257,7 +268,11 @@ function NewSalePage({
           </h1>
           <p className="mt-4 text-xl font-bold text-[#2b3025]">{currency(registered.total)}</p>
           <p className="mt-4 text-sm leading-relaxed text-[#747a6d]">
-            Pagamento via {registered.payment} · {registered.items}{' '}
+            Pagamento via {registered.payment}
+            {registered.payment === 'Cartão' && registered.cardType
+              ? ` (${registered.cardType === 'CREDITO' ? 'Crédito' : 'Débito'})`
+              : ''}{' '}
+            · {registered.items}{' '}
             {registered.items === 1 ? 'item' : 'itens'}
             <br />
             Estoque atualizado automaticamente
@@ -356,7 +371,10 @@ function NewSalePage({
                   : 'border-[#e8e8e0] bg-white text-[#343a2f] hover:border-[#c9cfbf]'
               }`}
               key={method}
-              onClick={() => setPayment(method)}
+              onClick={() => {
+                setPayment(method)
+                if (method !== 'Cartão') setCardType(null)
+              }}
               role="radio"
               type="button"
             >
@@ -371,6 +389,24 @@ function NewSalePage({
           )
         })}
       </div>
+      {payment === 'Cartão' && (
+        <label className="mt-4 block text-sm font-medium text-[#2b3025]">
+          Tipo do cartão
+          <select
+            className="mt-2 h-12 w-full rounded-xl border border-[#e8e8e0] bg-white px-3 text-sm text-[#343a2f] outline-none focus:border-[#39452d] focus:ring-2 focus:ring-[#39452d]/20"
+            onChange={(event) => {
+              const value = event.target.value
+              setCardType(value === 'CREDITO' || value === 'DEBITO' ? value : null)
+            }}
+            required
+            value={cardType ?? ''}
+          >
+            <option value="">Selecione crédito ou débito</option>
+            <option value="CREDITO">Crédito</option>
+            <option value="DEBITO">Débito</option>
+          </select>
+        </label>
+      )}
     </section>
   )
 
@@ -381,6 +417,8 @@ function NewSalePage({
           ? 'Adicione ao menos um produto.'
           : !payment
             ? 'Escolha o pagamento e confirme abaixo.'
+            : payment === 'Cartão' && !cardType
+              ? 'Selecione crédito ou débito.'
             : 'Tudo pronto. Confirme a venda.'}
       </p>
       <button
