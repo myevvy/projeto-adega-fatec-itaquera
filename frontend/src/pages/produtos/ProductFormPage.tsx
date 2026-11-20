@@ -107,6 +107,12 @@ function ProductFormPage({
     }
   }, [photoPreview])
 
+  useEffect(() => {
+    if (!saved || product) return
+    const timeout = window.setTimeout(() => onNavigate('produtos'), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [onNavigate, product, saved])
+
   const update = (field: keyof typeof form, value: string | number) => {
     setSaved(false)
     setForm((current) => ({ ...current, [field]: value }))

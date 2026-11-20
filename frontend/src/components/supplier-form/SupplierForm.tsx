@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { Supplier } from '../../types/fornecedor'
 
 type SupplierFormProps = {
@@ -46,6 +46,12 @@ function SupplierForm({ onCancel, onDone, onSave, supplier }: SupplierFormProps)
 
   const isEditing = Boolean(supplier)
   const isLocked = isSaving || savedSupplier !== null
+
+  useEffect(() => {
+    if (!savedSupplier || isEditing || !onDone) return
+    const timeout = window.setTimeout(() => onDone(savedSupplier), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [isEditing, onDone, savedSupplier])
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))

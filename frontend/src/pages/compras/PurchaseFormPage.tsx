@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
@@ -104,6 +104,12 @@ function PurchaseFormPage({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [created, setCreated] = useState<PurchaseDetail | null>(null)
+
+  useEffect(() => {
+    if (!created) return
+    const timeout = window.setTimeout(() => onNavigate('compras'), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [created, onNavigate])
 
   const supplier = activeSuppliers.find((item) => item.id === supplierId)
   const product = activeProducts.find((item) => String(item.id) === productId)

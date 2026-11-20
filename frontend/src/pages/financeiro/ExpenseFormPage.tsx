@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import StatusToast from '../../components/status-toast/StatusToast'
 import type { AppPath, ExpenseRecord, SetupData } from '../../types'
@@ -45,6 +45,12 @@ function ExpenseFormPage({
   const [saved, setSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!saved) return
+    const timeout = window.setTimeout(() => onNavigate('financeiro'), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [onNavigate, saved])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

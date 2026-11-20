@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import VoiceSearchButton from '../../components/voice-search/VoiceSearchButton'
 import type { AppPath, PaymentMethod, Product, SaleRecord } from '../../types'
@@ -137,11 +137,18 @@ function NewSalePage({
   const [payment, setPayment] = useState<PaymentMethod | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
   const [registered, setRegistered] = useState<{
     total: number
     payment: PaymentMethod
     items: number
   } | null>(null)
+
+  useEffect(() => {
+    if (!registered) return
+    const timeout = window.setTimeout(() => onNavigate('vendas'), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [onNavigate, registered])
 
   const categories = useMemo(
     () => [
