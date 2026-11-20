@@ -45,7 +45,7 @@ const obterVendasPorDia = async (inicio, fimExclusivo) => {
         AND v.finalizada_em >= ?
         AND v.finalizada_em < ?
       GROUP BY DATE_FORMAT(v.finalizada_em, '%Y-%m-%d')
-      ORDER BY DATE(v.finalizada_em) ASC`,
+      ORDER BY data ASC`,
     [inicio, fimExclusivo],
   );
 
