@@ -21,6 +21,9 @@ const labelClass = 'block min-w-0 text-sm font-medium text-[#26291f]'
 
 const primaryButtonClass = `w-full rounded-xl bg-[#3b4a2b] py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#2f3b22] active:scale-[0.99] sm:w-auto sm:min-w-56 sm:px-8 ${focusRing}`
 
+// Mesmo visual/altura para todos os cartões clicáveis do menu
+const menuCardClass = `flex min-h-[4.75rem] w-full items-center gap-4 rounded-2xl border border-[#e3dfd2] bg-white px-4 py-3 text-left transition hover:bg-[#fdfcf8] active:scale-[0.99] sm:px-5 ${focusRing}`
+
 function ArrowLeftIcon() {
   return (
     <svg
@@ -78,6 +81,26 @@ function ScreenHeader({ onBack, title }: ScreenHeaderProps) {
   )
 }
 
+// Cabeçalho de seção com altura fixa: garante que os cartões das duas colunas comecem na mesma linha
+function SectionHeader({
+  action,
+  id,
+  title,
+}: {
+  action?: React.ReactNode
+  id: string
+  title: string
+}) {
+  return (
+    <div className="flex min-h-10 items-center justify-between gap-3">
+      <h2 className="text-base font-bold sm:text-lg" id={id}>
+        {title}
+      </h2>
+      {action}
+    </div>
+  )
+}
+
 function SettingsPage({
   onNavigate,
   onSetupDataChange,
@@ -125,55 +148,65 @@ function SettingsPage({
             />
             {statusMessage}
 
-            <div className="mt-6 grid gap-7 lg:grid-cols-2 lg:items-start lg:gap-8">
-              <button
-                className={`flex w-full items-center justify-between gap-4 rounded-2xl border border-[#e3dfd2] bg-white p-4 text-left transition hover:bg-[#fdfcf8] active:scale-[0.99] sm:p-5 ${focusRing}`}
-                onClick={() => goTo('business')}
-                type="button"
-              >
-                <span className="min-w-0">
-                  <span className="block text-[15px] font-semibold">
-                    Dados da adega
-                  </span>
-                  <span className="mt-1 block text-xs text-[#6f6b60] sm:text-sm">
-                    Nome, categoria e contato do negócio
-                  </span>
-                </span>
-                <ChevronIcon />
-              </button>
-
-              <section aria-labelledby="users-title" className="min-w-0">
-                <div className="flex items-center justify-between gap-3">
-                  <h2
-                    className="text-base font-bold sm:text-lg"
-                    id="users-title"
-                  >
-                    Usuários
-                  </h2>
-                  <button
-                    className={`rounded-lg bg-[#3b4a2b] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#2f3b22] sm:text-sm ${focusRing}`}
-                    onClick={() => onNavigate('configuracoes/usuarios')}
-                    type="button"
-                  >
-                    Gerenciar
-                  </button>
-                </div>
-
-                <ul className="mt-3 divide-y divide-[#e3dfd2] overflow-hidden rounded-2xl border border-[#e3dfd2] bg-white">
-                  <li className="flex items-center gap-3 px-4 py-3.5">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1c1d18] text-sm font-medium text-white"
-                    >
-                      {(setupData.adminName || 'M').charAt(0).toUpperCase()}
+            <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:gap-10">
+              {/* Coluna 1: Negócio */}
+              <section aria-labelledby="business-title" className="min-w-0">
+                <SectionHeader id="business-title" title="Negócio" />
+                <button
+                  className={`${menuCardClass} mt-3 justify-between`}
+                  onClick={() => goTo('business')}
+                  type="button"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold">
+                      Dados da adega
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold">
-                        {setupData.adminName || 'Administrador'}
-                      </p>
-                      <p className="text-xs text-[#6f6b60]">Administrador</p>
-                    </div>
-                    <ChevronIcon />
+                    <span className="mt-0.5 block text-xs text-[#6f6b60] sm:text-sm">
+                      Nome, categoria e contato do negócio
+                    </span>
+                  </span>
+                  <ChevronIcon />
+                </button>
+              </section>
+
+              {/* Coluna 2: Usuários */}
+              <section aria-labelledby="users-title" className="min-w-0">
+                <SectionHeader
+                  action={
+                    <button
+                      className={`rounded-lg bg-[#3b4a2b] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#2f3b22] sm:text-sm ${focusRing}`}
+                      onClick={() => onNavigate('configuracoes/usuarios')}
+                      type="button"
+                    >
+                      Gerenciar
+                    </button>
+                  }
+                  id="users-title"
+                  title="Usuários"
+                />
+                <ul className="mt-3">
+                  <li>
+                    <button
+                      className={menuCardClass}
+                      onClick={() => onNavigate('configuracoes/usuarios')}
+                      type="button"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1c1d18] text-sm font-medium text-white"
+                      >
+                        {(setupData.adminName || 'M').charAt(0).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-semibold">
+                          {setupData.adminName || 'Administrador'}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-[#6f6b60] sm:text-sm">
+                          Administrador
+                        </span>
+                      </span>
+                      <ChevronIcon />
+                    </button>
                   </li>
                 </ul>
               </section>
@@ -288,7 +321,6 @@ function SettingsPage({
             </section>
           </div>
         )}
-
       </main>
     </div>
   )
