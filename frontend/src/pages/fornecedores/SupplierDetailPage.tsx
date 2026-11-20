@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import type { Supplier } from '../../types/fornecedor'
 import type { AppPath } from '../../types/sistema'
 import type { SetupData } from '../../types/usuario'
@@ -28,6 +27,16 @@ function SupplierDetailPage({
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState('')
   const purchasesTotal = supplier.purchases.reduce((total, purchase) => total + purchase.total, 0)
+
+  useEffect(() => {
+    if (!confirmDelete) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isDeleting) setConfirmDelete(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [confirmDelete, isDeleting])
+
   const handleDeactivate = async () => {
     setError('')
     setIsDeleting(true)
@@ -36,6 +45,7 @@ function SupplierDetailPage({
       setConfirmDelete(false)
       onNavigate('fornecedores')
     } catch (deleteError) {
+      setConfirmDelete(false)
       setError(
         deleteError instanceof Error
           ? deleteError.message
@@ -248,10 +258,9 @@ function SupplierDetailPage({
           </section>
         </div>
 
-        {/* Zona de risco */}
-        <div className="mt-8 text-center sm:text-left">
+        <div className="mt-8">
           <button
-            className="rounded-md px-1 py-1 text-sm font-medium text-red-700 transition hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline dark:text-red-400"
+            className="w-full rounded-xl border border-line bg-card px-5 py-3 text-sm font-semibold text-red-700 transition hover:border-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line sm:w-auto dark:text-red-400"
             disabled={!supplier.active}
             onClick={() => setConfirmDelete(true)}
             type="button"
@@ -259,16 +268,49 @@ function SupplierDetailPage({
             Desativar fornecedor
           </button>
         </div>
-
-        {confirmDelete && (
-          <ConfirmDialog
-            description="Esta ação desativa o fornecedor no banco de dados."
-            onCancel={() => setConfirmDelete(false)}
-            onConfirm={() => void handleDeactivate()}
-            title={isDeleting ? 'Desativando fornecedor...' : 'Desativar fornecedor?'}
-          />
-        )}
       </main>
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => {
+            if (!isDeleting) setConfirmDelete(false)
+          }}
+        >
+          <div
+            aria-labelledby="desativar-titulo"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl border border-line bg-card p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <h2 className="text-lg font-semibold" id="desativar-titulo">
+              Desativar fornecedor?
+            </h2>
+            <p className="mt-1 break-words text-sm text-muted">{supplier.name}</p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                autoFocus
+                className="rounded-xl bg-soft px-5 py-3 text-sm font-semibold transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isDeleting}
+                onClick={() => setConfirmDelete(false)}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isDeleting}
+                onClick={() => void handleDeactivate()}
+                type="button"
+              >
+                {isDeleting ? 'Desativando…' : 'Desativar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
