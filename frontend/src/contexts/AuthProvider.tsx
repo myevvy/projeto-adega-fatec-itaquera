@@ -91,8 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }
 
+  const updateSessionUser = (
+    user: Pick<AuthSession['usuario'], 'nome' | 'email'>,
+  ) => {
+    if (!session) return
+    const updatedSession = {
+      ...session,
+      usuario: { ...session.usuario, ...user },
+    }
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedSession))
+    setSession(updatedSession)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, login, logout }}>
+    <AuthContext.Provider value={{ session, login, logout, updateSessionUser }}>
       {children}
     </AuthContext.Provider>
   )

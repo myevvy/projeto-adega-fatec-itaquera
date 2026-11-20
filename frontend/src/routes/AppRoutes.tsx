@@ -8,7 +8,10 @@ import {
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { isAdministratorProfile } from '../services/authService'
+import {
+  isAdministratorProfile,
+  updateUserProfile,
+} from '../services/authService'
 import {
   adjustProductStock,
   cancelExpense,
@@ -115,7 +118,7 @@ function AppRoutes({
 }: AppRoutesProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, logout, session } = useAuth()
+  const { login, logout, session, updateSessionUser } = useAuth()
   const [dataLoadError, setDataLoadError] = useState('')
   const [productCategoryData, setProductCategoryData] = useState<{
     token: string
@@ -374,6 +377,16 @@ function AppRoutes({
       }
     })
     return category
+  }
+  const saveProfile = async (data: SetupData) => {
+    if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
+    await updateUserProfile(session.token, session.usuario.id, {
+      nome: data.adminName,
+      email: data.email,
+      tel: data.phone,
+    })
+    onSetupDataChange(data)
+    updateSessionUser({ nome: data.adminName, email: data.email })
   }
   const handleCancelSale = async (saleId: string) => {
     if (!session) throw new Error('Sua sessão expirou. Entre novamente.')
@@ -747,7 +760,7 @@ function AppRoutes({
             onLogout={logout}
             onNavigate={navigateTo}
             onNotificationsChange={onNotificationsChange}
-            onSetupDataChange={onSetupDataChange}
+            onSave={saveProfile}
             setupData={setupData}
           />
         }

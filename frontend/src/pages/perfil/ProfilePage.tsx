@@ -9,7 +9,7 @@ type ProfilePageProps = {
   onLogout: () => Promise<void>
   onNavigate: (path: AppPath) => void
   onNotificationsChange: (preferences: NotificationPreferences) => void
-  onSetupDataChange: (data: SetupData) => void
+  onSave: (data: SetupData) => Promise<void>
   setupData: SetupData
 }
 
@@ -250,13 +250,15 @@ function ProfilePage({
   onLogout,
   onNavigate,
   onNotificationsChange,
-  onSetupDataChange,
+  onSave,
   setupData,
 }: ProfilePageProps) {
   const navigate = useNavigate()
   const [view, setView] = useState<View>('main')
   const [form, setForm] = useState(setupData)
   const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [logoutError, setLogoutError] = useState('')
 
@@ -269,14 +271,32 @@ function ProfilePage({
     setView('edit')
   }
 
-  const saveProfile = (event: FormEvent<HTMLFormElement>) => {
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSetupDataChange(form)
-    setSaved(true)
+    setSaveError('')
+    setIsSaving(true)
+    try {
+      await onSave({
+        ...form,
+        adminName: form.adminName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      })
+      setSaved(true)
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar as alterações do perfil.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const updateField = (field: keyof SetupData, value: string) => {
     setSaved(false)
+    setSaveError('')
     setForm((current) => ({ ...current, [field]: value }))
   }
 
@@ -419,6 +439,11 @@ function ProfilePage({
                     <StatusBanner>Alterações do perfil salvas.</StatusBanner>
                   </div>
                 )}
+                {saveError && (
+                  <div className="mt-4">
+                    <StatusBanner tone="error">{saveError}</StatusBanner>
+                  </div>
+                )}
 
                 <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] mt-8 flex sm:justify-end lg:static lg:mt-6">
                   {saved ? (
@@ -430,8 +455,12 @@ function ProfilePage({
                       Voltar ao perfil
                     </button>
                   ) : (
-                    <button className={primaryButtonClass} type="submit">
-                      Salvar alterações
+                    <button
+                      className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                      disabled={isSaving}
+                      type="submit"
+                    >
+                      {isSaving ? 'Salvando...' : 'Salvar alterações'}
                     </button>
                   )}
                 </div>

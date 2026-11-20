@@ -60,7 +60,7 @@ export function getTokenProfile(token: string): string | null {
 
 async function requestJson(
   path: string,
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   options: { body?: unknown; token?: string } = {},
 ) {
   try {
@@ -180,6 +180,17 @@ export async function createCollaborator(
       telefone: input.telefone,
       senha: input.senha,
     },
+  })
+}
+
+export function updateUserProfile(
+  token: string,
+  userId: number,
+  input: { nome: string; email: string; tel: string },
+) {
+  return requestJson(`/usuarios/${userId}`, 'PUT', {
+    token,
+    body: input,
   })
 }
 
