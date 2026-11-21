@@ -1,47 +1,47 @@
 // controllers/authController.js
-import * as firebase from '../services/firebaseAuth.js';
-import User from '../models/auth/usuarios.js'; // Ajuste o caminho se necessário
+// Só a recuperação de senha. O cadastro oficial é o /cadastro (somente Administrador)
+// e o login oficial é o /login, ambos no controllers/usuarios.js.
+import "../../config/env.js";
 
-async function register(req, res) {
-  const { perfil_id, nome, email, senha, telefone } = req.body;
-  if (!perfil_id || !nome || !email || !senha) {
-    return res.status(400).json({ erro: 'Preencha perfil_id, nome, email e senha.' });
-  }
-  try {
-    await firebase.cadastrar(email, senha);
-    const idUsuario = await User.postUsuario(perfil_id, nome, email, null, telefone);
-    res.status(201).json({ mensagem: 'Usuário cadastrado com sucesso!', id: idUsuario });
-  } catch (err) {
-    if (err.codigo === 'EMAIL_EXISTS') {
-      return res.status(409).json({ erro: 'Email já cadastrado.' });
-    }
-    if (err.codigo && err.codigo.startsWith('WEAK_PASSWORD')) {
-      return res.status(400).json({ erro: 'Senha fraca (mínimo 6 caracteres).' });
-    }
-    console.error(err);
-    res.status(500).json({ erro: 'Erro ao cadastrar.' });
-  }
-}
-
-async function login(req, res) {
-  const { email, senha } = req.body;
-  try {
-    const fb = await firebase.entrar(email, senha);
-    const user = await User.getUsuario(email);
-    res.json({ token: fb.idToken, usuario: user });
-  } catch (err) {
-    res.status(401).json({ erro: 'Email ou senha inválidos.' });
-  }
-}
+const MENSAGEM_PADRAO =
+  "Se o e-mail estiver cadastrado, enviamos o link de recuperação.";
 
 async function esqueciSenha(req, res) {
-  const { email } = req.body;
-  try {
-    if (email) await firebase.enviarRecuperacaoSenha(email);
-  } catch (err) {
-    console.error('Recuperação:', err.codigo);
+  const email = String(req.body?.email ?? "").trim().toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({ erro: "Informe o e-mail." });
   }
-  res.json({ mensagem: 'Se o e-mail estiver cadastrado, enviamos o link de recuperação.' });
+
+  try {
+    if (!process.env.FIREBASE_API_KEY) {
+      console.error("Recuperação de senha: FIREBASE_API_KEY não configurada.");
+    } else {
+      // Pede ao Firebase para enviar o e-mail de redefinição de senha
+      const resposta = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.FIREBASE_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestType: "PASSWORD_RESET", email }),
+        },
+      );
+
+      if (!resposta.ok) {
+        const corpo = await resposta.json().catch(() => ({}));
+        // Só registra no log (ex.: EMAIL_NOT_FOUND, TOO_MANY_ATTEMPTS_TRY_LATER)
+        console.error(
+          "Recuperação de senha (Firebase):",
+          corpo?.error?.message || resposta.status,
+        );
+      }
+    }
+  } catch (erro) {
+    console.error("Recuperação de senha:", erro.message);
+  }
+
+  // Sempre a mesma resposta, exista o e-mail ou não (não revela quem está cadastrado)
+  return res.status(200).json({ mensagem: MENSAGEM_PADRAO });
 }
 
-export default { register, login, esqueciSenha };
+export default { esqueciSenha };

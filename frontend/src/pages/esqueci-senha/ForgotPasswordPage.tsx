@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import AuthLayout from '../../components/auth-layout/AuthLayout'
-import { sendPasswordResetEmail } from '../../services/'
+import { sendPasswordResetEmail } from '../../services/firebasePasswordReset'
 
 type ForgotPasswordPageProps = {
   onBackToLogin: () => void
 }
 
-function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
+function ForgotPasswordPage({ onBackToLogin }: ForgotPa
+  sswordPageProps) {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
@@ -128,4 +129,4 @@ function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
   )
 }
 
-export default ForgotPasswordPage
+export default ForgotPasswordPage;

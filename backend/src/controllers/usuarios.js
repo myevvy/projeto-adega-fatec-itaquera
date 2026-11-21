@@ -216,6 +216,24 @@ const logout = async (req, res) => {
 };
 
 const putUsuario = async (req, res) => {
+  // NOVO: guarda o e-mail antigo para desfazer no Firebase se o MySQL falhar
+  let emailAlteradoNoFirebase = null;
+
+  const desfazerEmailNoFirebase = async () => {
+    if (!emailAlteradoNoFirebase) return;
+    await admin
+      .auth()
+      .updateUser(emailAlteradoNoFirebase.uid, {
+        email: emailAlteradoNoFirebase.emailAntigo,
+      })
+      .catch((e) =>
+        console.error(
+          "Não foi possível desfazer o e-mail no Firebase:",
+          e.message,
+        ),
+      );
+  };
+
   try {
     const idU = Number(req.params.id);
     const { id, perfil: perfil_logado } = req.usuario;
@@ -250,7 +268,34 @@ const putUsuario = async (req, res) => {
           ...(senha && { password: senha }),
           ...(mudouEmail && { email }),
         });
+
+        if (mudouEmail) {
+          emailAlteradoNoFirebase = {
+            uid: usuarioFirebase.uid,
+            emailAntigo: usuarioExiste.email,
+          };
+        }
       } catch (erroFirebase) {
+        // NOVO: mensagens específicas para os erros do Firebase
+        if (erroFirebase.code === "auth/email-already-exists") {
+          return res.status(409).json({
+            mensagem: "Esse e-mail já está em uso.",
+          });
+        }
+
+        if (
+          erroFirebase.code === "auth/invalid-password" ||
+          erroFirebase.code === "auth/weak-password"
+        ) {
+          return res.status(400).json({
+            mensagem: "A senha deve ter pelo menos 6 caracteres.",
+          });
+        }
+
+        if (erroFirebase.code === "auth/invalid-email") {
+          return res.status(400).json({ mensagem: "E-mail inválido." });
+        }
+
         console.error("Erro ao atualizar no Firebase:", erroFirebase.message);
         return res.status(502).json({
           mensagem: "Não foi possível atualizar o acesso do usuário.",
@@ -279,6 +324,7 @@ const putUsuario = async (req, res) => {
     );
 
     if (!atualizado) {
+      await desfazerEmailNoFirebase(); // NOVO
       return res.status(400).json({
         mensagem: "Não foi possível atualizar o usuário.",
       });
@@ -289,6 +335,7 @@ const putUsuario = async (req, res) => {
     });
   } catch (erro) {
     console.log("Erro no update:", erro.message);
+    await desfazerEmailNoFirebase(); // NOVO
     return res.status(500).json({
       mensagem: "Erro interno ao atualizar usuário.",
     });
@@ -320,6 +367,25 @@ const desativarUsuario = async (req, res) => {
       return res.status(400).json({
         mensagem: "Não foi possível alterar o status do usuário.",
       });
+    }
+
+    // NOVO: desativa a conta no Firebase e derruba as sessões abertas.
+    // Como o alterarStatus(id) daqui só desativa, o Firebase também só desativa.
+    // Se o status virar alternável (ativar/desativar), troque "disabled: true"
+    // para refletir o novo status. Se falhar, só registra no log: o login já
+    // barra por usuario.ativo.
+    try {
+      const usuarioFirebase = await admin
+        .auth()
+        .getUserByEmail(usuarioExiste.email);
+
+      await admin.auth().updateUser(usuarioFirebase.uid, { disabled: true });
+      await admin.auth().revokeRefreshTokens(usuarioFirebase.uid);
+    } catch (erroFirebase) {
+      console.error(
+        "Erro ao desativar usuário no Firebase:",
+        erroFirebase.message,
+      );
     }
 
     return res.status(200).json({
