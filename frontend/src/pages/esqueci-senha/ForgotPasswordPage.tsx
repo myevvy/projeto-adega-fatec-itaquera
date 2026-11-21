@@ -6,8 +6,7 @@ type ForgotPasswordPageProps = {
   onBackToLogin: () => void
 }
 
-function ForgotPasswordPage({ onBackToLogin }: ForgotPa
-  sswordPageProps) {
+function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
