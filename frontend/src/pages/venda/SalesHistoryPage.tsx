@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
-import ConfirmDialog from '../../components/confirm-dialog/ConfirmDialog'
 import SalesPeriodFilter from '../../components/sales-period-filter/SalesPeriodFilter'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdministratorProfile } from '../../services/authService'
@@ -56,6 +55,7 @@ function SaleDetails({
   onBack,
   onCancel,
 }: SaleDetailsProps) {
+  const noticeRef = useRef<HTMLDivElement>(null)
   const shortId = sale.id.slice(-6)
   const hasItems = sale.items.length > 0
   const units = sale.items.reduce((count, item) => count + item.quantity, 0)
@@ -64,14 +64,17 @@ function SaleDetails({
     : sale.total
   const discount = Math.max(Math.round((subtotal - sale.total) * 100) / 100, 0)
 
-  return (
-    <article aria-labelledby="sale-details-heading" className="w-full">
-      <div className="flex max-w-xl flex-col gap-5 min-[900px]:rounded-xl min-[900px]:border min-[900px]:border-[#e8e4d9] min-[900px]:bg-white min-[900px]:p-6">
+  useEffect(() => {
+    if (cancelNotice) noticeRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [cancelNotice])
 
-        <header className="flex items-center gap-2">
+  return (
+    <article aria-labelledby="sale-details-heading" className="w-full min-w-0">
+      <div className="flex min-w-0 flex-col gap-5 min-[900px]:max-w-2xl min-[900px]:rounded-xl min-[900px]:border min-[900px]:border-[#e8e4d9] min-[900px]:bg-white min-[900px]:p-6 min-[1280px]:max-w-none min-[1280px]:p-8">
+        <header className="sticky top-0 z-10 -mx-4 -mt-4 flex items-center gap-2 border-b border-[#e8e4d9] bg-[#faf8f3]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6 min-[900px]:static min-[900px]:mx-0 min-[900px]:mt-0 min-[900px]:border-0 min-[900px]:bg-transparent min-[900px]:p-0 min-[900px]:backdrop-blur-none">
           <button
             aria-label="Voltar ao histórico"
-            className={`-ml-2 grid size-10 place-items-center rounded-full hover:bg-[#efece3] ${focusRing}`}
+            className={`-ml-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-[#efece3] ${focusRing}`}
             onClick={onBack}
             type="button"
           >
@@ -85,136 +88,158 @@ function SaleDetails({
               />
             </svg>
           </button>
-          <h1 className="text-base font-bold sm:text-lg" id="sale-details-heading">
+          <h1 className="min-w-0 text-base font-bold sm:text-lg" id="sale-details-heading">
             Detalhes da Venda
           </h1>
         </header>
-        
-        <div className="flex items-center justify-between gap-3 border-b border-[#e8e4d9] pb-4">
-          <h2 className="text-xl font-bold tracking-tight">Venda #{shortId}</h2>
-          {cancelled && (
-            <span className="rounded-full bg-[#ece9e0] px-3 py-1 text-xs font-semibold text-[#6f6b61]">
-              Cancelada
-            </span>
-          )}
+
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-[#e8e4d9] pb-4">
+          <h2 className="text-xl font-bold tracking-tight min-[1280px]:text-2xl">
+            Venda #{shortId}
+          </h2>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              cancelled ? 'bg-[#ece9e0] text-[#6f6b61]' : 'bg-[#34452b] text-[#faf8f3]'
+            }`}
+          >
+            {cancelled ? 'Cancelada' : 'Concluída'}
+          </span>
         </div>
 
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-b border-[#e8e4d9] pb-4 text-[0.82rem]">
-          <dt className="text-[#6f6b61]">Data e hora</dt>
-          <dd className="m-0 text-right font-medium tabular-nums">
-            {formatDateTime(sale.createdAt)}
-          </dd>
-          <dt className="text-[#6f6b61]">Pagamento</dt>
-          <dd className="m-0 text-right font-medium">{sale.paymentMethod}</dd>
-          <dt className="text-[#6f6b61]">Vendedor</dt>
-          <dd className="m-0 text-right font-medium wrap-anywhere">{sellerName}</dd>
-        </dl>
+        <div className="grid min-w-0 gap-5 min-[1280px]:grid-cols-[minmax(0,1fr)_21rem] min-[1280px]:items-start min-[1280px]:gap-8">
+          <div className="flex min-w-0 flex-col gap-5">
+            <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-b border-[#e8e4d9] pb-4 text-sm">
+              <dt className="text-[#6f6b61]">Data e hora</dt>
+              <dd className="m-0 text-right font-medium tabular-nums">
+                {formatDateTime(sale.createdAt)}
+              </dd>
+              <dt className="text-[#6f6b61]">Pagamento</dt>
+              <dd className="m-0 text-right font-medium wrap-anywhere">{sale.paymentMethod}</dd>
+              <dt className="text-[#6f6b61]">Vendedor</dt>
+              <dd className="m-0 text-right font-medium wrap-anywhere">{sellerName}</dd>
+            </dl>
 
-        <section aria-labelledby="sale-items-heading" className="border-b border-[#e8e4d9] pb-4">
-          <h3 className="mb-1 text-base font-bold" id="sale-items-heading">
-            Itens ({units})
-          </h3>
-          {hasItems ? (
-            <ul className="m-0 list-none p-0">
-              {sale.items.map((item) => (
-                <li
-                  className="flex items-center gap-3 border-b border-[#e8e4d9] py-3 last:border-b-0"
-                  key={`${item.productId}-${item.unitPrice}`}
+            <section
+              aria-labelledby="sale-items-heading"
+              className="border-b border-[#e8e4d9] pb-4 min-[1280px]:border-b-0 min-[1280px]:pb-0"
+            >
+              <h3 className="mb-1 text-base font-bold" id="sale-items-heading">
+                Itens ({units})
+              </h3>
+              {hasItems ? (
+                <ul className="m-0 list-none p-0">
+                  {sale.items.map((item) => (
+                    <li
+                      className="flex items-center gap-3 border-b border-[#e8e4d9] py-3 last:border-b-0"
+                      key={`${item.productId}-${item.unitPrice}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-10 shrink-0 rounded-lg bg-[#dfe8d3]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <strong className="block text-[0.92rem] wrap-anywhere">{item.name}</strong>
+                        <p className="m-0 mt-0.5 text-[0.75rem] text-[#6f6b61]">
+                          {item.quantity} un. × {formatCurrency(item.unitPrice)}
+                        </p>
+                      </div>
+                      <strong className="shrink-0 text-[0.92rem] whitespace-nowrap tabular-nums">
+                        {formatCurrency(item.quantity * item.unitPrice)}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="m-0 py-3 text-sm text-[#6f6b61]">Itens não disponíveis.</p>
+              )}
+            </section>
+          </div>
+
+          <aside className="flex min-w-0 flex-col gap-5 min-[1280px]:sticky min-[1280px]:top-8 min-[1280px]:rounded-xl min-[1280px]:border min-[1280px]:border-[#e8e4d9] min-[1280px]:bg-[#faf8f3] min-[1280px]:p-5">
+            <section aria-label="Totais da venda" className="flex flex-col gap-2">
+              <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+                <dt className="text-[#6f6b61]">Subtotal</dt>
+                <dd className="m-0 text-right tabular-nums">{formatCurrency(subtotal)}</dd>
+                <dt className="text-[#6f6b61]">Desconto</dt>
+                <dd className="m-0 text-right tabular-nums">{formatCurrency(discount)}</dd>
+              </dl>
+              <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-[#e8e4d9] pt-3">
+                <span className="text-sm font-bold">Total</span>
+                <strong className="text-[clamp(1.35rem,6vw,1.6rem)] leading-none font-extrabold tracking-tight tabular-nums">
+                  {formatCurrency(sale.total)}
+                </strong>
+              </div>
+              {cancelled && (
+                <p className="m-0 text-[0.75rem] text-[#6f6b61]">
+                  Valor histórico da venda cancelada.
+                </p>
+              )}
+            </section>
+
+            {cancelNotice && (
+              <div
+                className="flex items-start gap-3 rounded-xl border border-[#cfdcc0] bg-[#e4ecd9] p-4 text-[#2b3a23]"
+                ref={noticeRef}
+                role="status"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0"
+                  fill="none"
+                  height="22"
+                  viewBox="0 0 22 22"
+                  width="22"
                 >
-                  <span aria-hidden="true" className="size-10 shrink-0 rounded-lg bg-[#dfe8d3]" />
-                  <div className="min-w-0 flex-1">
-                    <strong className="block text-[0.92rem] wrap-anywhere">{item.name}</strong>
-                    <p className="m-0 mt-0.5 text-[0.75rem] text-[#6f6b61]">
-                      {item.quantity} un. × {formatCurrency(item.unitPrice)}
-                    </p>
-                  </div>
-                  <strong className="text-[0.92rem] whitespace-nowrap tabular-nums">
-                    {formatCurrency(item.quantity * item.unitPrice)}
+                  <path
+                    d="m4 11.5 4.5 4.5L18 6"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+                <div className="min-w-0">
+                  <strong className="block text-[0.88rem]">
+                    Venda #{shortId} cancelada com sucesso.
                   </strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="m-0 py-3 text-sm text-[#6f6b61]">Itens não detalhados pela API.</p>
-          )}
-        </section>
+                  <p className="m-0 mt-0.5 text-[0.8rem]">
+                    {cancelNotice.units > 0
+                      ? `Estoque restaurado: ${cancelNotice.units} ${cancelNotice.units === 1 ? 'unidade devolvida' : 'unidades devolvidas'}.`
+                      : 'Estoque e financeiro estornados.'}
+                  </p>
+                </div>
+              </div>
+            )}
 
-        <section aria-label="Totais da venda" className="flex flex-col gap-2">
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[0.82rem]">
-            <dt className="text-[#6f6b61]">Subtotal</dt>
-            <dd className="m-0 text-right tabular-nums">{formatCurrency(subtotal)}</dd>
-            <dt className="text-[#6f6b61]">Desconto</dt>
-            <dd className="m-0 text-right tabular-nums">{formatCurrency(discount)}</dd>
-          </dl>
-          <div className="mt-2 flex items-baseline justify-between gap-3">
-            <span className="text-sm font-bold">Total</span>
-            <strong className="text-[1.6rem] leading-none font-extrabold tracking-tight tabular-nums">
-              {formatCurrency(sale.total)}
-            </strong>
-          </div>
-          {cancelled && (
-            <p className="m-0 text-[0.75rem] text-[#6f6b61]">Valor histórico da venda cancelada.</p>
-          )}
-        </section>
-
-        {cancelNotice && (
-          <div
-            className="flex items-start gap-3 rounded-xl border border-[#cfdcc0] bg-[#e4ecd9] p-4 text-[#2b3a23]"
-            role="status"
-          >
-            <svg
-              aria-hidden="true"
-              className="mt-0.5 shrink-0"
-              fill="none"
-              height="22"
-              viewBox="0 0 22 22"
-              width="22"
-            >
-              <path
-                d="m4 11.5 4.5 4.5L18 6"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-              />
-            </svg>
-            <div className="min-w-0">
-              <strong className="block text-[0.88rem]">
-                Venda #{shortId} cancelada com sucesso.
-              </strong>
-              <p className="m-0 mt-0.5 text-[0.8rem]">
-                {cancelNotice.units > 0
-                  ? `Estoque restaurado: ${cancelNotice.units} ${cancelNotice.units === 1 ? 'unidade devolvida' : 'unidades devolvidas'}.`
-                  : 'Estoque e financeiro estornados.'}
+            {error && (
+              <p
+                className="m-0 rounded-xl bg-[#fbe9e7] px-4 py-3 text-sm text-[#b3261e]"
+                role="alert"
+              >
+                {error}
               </p>
-            </div>
-          </div>
-        )}
+            )}
 
-        {error && (
-          <p className="m-0 rounded-xl bg-[#fbe9e7] px-4 py-3 text-sm text-[#b3261e]" role="alert">
-            {error}
-          </p>
-        )}
-        
-        <div className="flex flex-col gap-2">
-          {!cancelled && (
-            <button
-              className={`min-h-12 w-full rounded-xl border border-[#b3261e] text-sm font-semibold text-[#b3261e] hover:bg-[#fbe9e7] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
-              disabled={isCancelling}
-              onClick={onCancel}
-              type="button"
-            >
-              Cancelar venda
-            </button>
-          )}
-          <button
-            className={`min-h-12 w-full rounded-xl bg-[#34452b] text-sm font-semibold text-[#faf8f3] transition-colors hover:bg-[#2a3823] motion-reduce:transition-none ${focusRing}`}
-            onClick={onBack}
-            type="button"
-          >
-            Voltar ao histórico
-          </button>
+            <div className="flex flex-col gap-2 sm:flex-row min-[1280px]:flex-col">
+              {!cancelled && (
+                <button
+                  className={`min-h-12 w-full rounded-xl border border-[#b3261e] px-4 text-sm font-semibold text-[#b3261e] hover:bg-[#fbe9e7] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1 ${focusRing}`}
+                  disabled={isCancelling}
+                  onClick={onCancel}
+                  type="button"
+                >
+                  Cancelar venda
+                </button>
+              )}
+              <button
+                className={`min-h-12 w-full rounded-xl bg-[#34452b] px-4 text-sm font-semibold text-[#faf8f3] transition-colors hover:bg-[#2a3823] motion-reduce:transition-none sm:flex-1 ${focusRing}`}
+                onClick={onBack}
+                type="button"
+              >
+                Voltar ao histórico
+              </button>
+            </div>
+          </aside>
         </div>
       </div>
     </article>
@@ -227,7 +252,11 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const [period, setPeriod] = useState<SalesPeriod>('7')
   const [saleToCancel, setSaleToCancel] = useState<SaleRecord | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [cancelNotice, setCancelNotice] = useState<{ saleId: string; units: number } | null>(null)
+  const [cancelNotice, setCancelNotice] = useState<{
+    saleId: string
+    units: number
+    items: SaleRecord['items']
+  } | null>(null)
   const [error, setError] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const filteredSales = useMemo(() => {
@@ -245,6 +274,22 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
   const selectedSale = selectedId ? (sales.find((sale) => sale.id === selectedId) ?? null) : null
   const activeSales = filteredSales.filter((sale) => sale.status !== 'CANCELADA')
   const total = activeSales.reduce((sum, sale) => sum + sale.total, 0)
+  const detailSale =
+    selectedSale &&
+    cancelNotice?.saleId === selectedSale.id &&
+    selectedSale.items.length === 0
+      ? { ...selectedSale, items: cancelNotice.items }
+      : selectedSale
+
+  useEffect(() => {
+    if (!saleToCancel) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isCancelling) setSaleToCancel(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [saleToCancel, isCancelling])
+
   const openDetails = (saleId: string) => {
     setError('')
     setCancelNotice(null)
@@ -266,11 +311,13 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       setCancelNotice({
         saleId: target.id,
         units: target.items.reduce((count, item) => count + item.quantity, 0),
+        items: target.items,
       })
       setSelectedId(target.id)
       setSaleToCancel(null)
       window.scrollTo({ top: 0 })
     } catch (cancelError) {
+      setSaleToCancel(null)
       setError(
         cancelError instanceof Error ? cancelError.message : 'Não foi possível cancelar a venda.',
       )
@@ -294,13 +341,13 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
             isCancelling={isCancelling}
             onBack={closeDetails}
             onCancel={() => setSaleToCancel(selectedSale)}
-            sale={selectedSale}
+            sale={detailSale ?? selectedSale}
             sellerName={setupData.adminName}
           />
         ) : (
           <>
-
-            <header className="flex flex-col gap-3 border-b border-[#e8e4d9] pb-4 sm:flex-row sm:items-start sm:justify-between">
+            
+            <header className="flex flex-col gap-4 border-b border-[#e8e4d9] pb-4">
               <div>
                 <h1 className="text-xl font-bold tracking-tight sm:text-[1.6rem]">
                   Histórico de Vendas
@@ -309,11 +356,10 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
                   Consulte as vendas realizadas no período.
                 </p>
               </div>
-              <div>
-                <SalesPeriodFilter
-                  onChange={setPeriod}
-                  value={period}
-                />
+              <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="w-max min-w-full">
+                  <SalesPeriodFilter onChange={setPeriod} value={period} />
+                </div>
               </div>
             </header>
 
@@ -412,7 +458,7 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
                           <p className="mt-0.5 text-[0.78rem] leading-snug text-[#6f6b61]">
                             {sale.items.length
                               ? `${sale.items.reduce((count, item) => count + item.quantity, 0)} itens`
-                              : 'Itens não detalhados pela API'}{' '}
+                              : 'Itens não disponíveis'}{' '}
                             · {sale.paymentMethod} ·{' '}
                             {new Date(sale.createdAt).toLocaleString('pt-BR', {
                               day: '2-digit',
@@ -466,12 +512,51 @@ function SalesHistoryPage({ onNavigate, onCancelSale, sales, setupData }: SalesH
       </section>
 
       {saleToCancel && (
-        <ConfirmDialog
-          description="O cancelamento será registrado no banco e fará o estorno do estoque e do financeiro."
-          onCancel={() => setSaleToCancel(null)}
-          onConfirm={() => void handleCancel()}
-          title={isCancelling ? 'Cancelando venda...' : 'Cancelar venda?'}
-        />
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#1d1c19]/50 p-4 sm:items-center"
+          onClick={() => {
+            if (!isCancelling) setSaleToCancel(null)
+          }}
+        >
+          <div
+            aria-describedby="cancelar-venda-descricao"
+            aria-labelledby="cancelar-venda-titulo"
+            aria-modal="true"
+            className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-[#e8e4d9] bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <h2 className="text-lg font-bold tracking-tight" id="cancelar-venda-titulo">
+              Cancelar venda #{saleToCancel.id.slice(-6)}?
+            </h2>
+            <p
+              className="mt-2 text-sm leading-6 text-[#6f6b61]"
+              id="cancelar-venda-descricao"
+            >
+              O estoque e o financeiro serão estornados. Essa ação não pode ser desfeita.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                autoFocus
+                className={`min-h-12 rounded-xl border border-[#e8e4d9] bg-white text-sm font-semibold transition-colors hover:bg-[#efece3] motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                disabled={isCancelling}
+                onClick={() => setSaleToCancel(null)}
+                type="button"
+              >
+                Manter venda
+              </button>
+              <button
+                className="min-h-12 rounded-xl bg-[#b3261e] text-sm font-semibold text-white transition-colors hover:bg-[#8f1f19] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b3261e] motion-reduce:transition-none disabled:cursor-wait disabled:opacity-60"
+                disabled={isCancelling}
+                onClick={() => void handleCancel()}
+                type="button"
+              >
+                {isCancelling ? 'Cancelando…' : 'Cancelar venda'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   )

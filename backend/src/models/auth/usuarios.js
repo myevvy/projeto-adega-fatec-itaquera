@@ -41,6 +41,15 @@ const getUsuario = async (email) => {
   return rows[0] || null;
 };
 
+const getUsuarioPorEmail = async (email) => {
+  const [rows] = await db.query(
+    `SELECT ${CAMPOS_PUBLICOS} ${FROM}
+     WHERE u.email = ?`,
+    [email],
+  );
+  return rows[0] || null;
+};
+
 const getUsuarioID = async (id) => {
   const [rows] = await db.query(
     `SELECT ${CAMPOS_PUBLICOS} ${FROM} WHERE u.id = ?`,
@@ -150,6 +159,7 @@ const alterarStatus = async (id, status) => {
 
 export default {
   getUsuario,
+  getUsuarioPorEmail,
   getUsuarioID,
   getUsuarioLogin,
   postUsuario,

@@ -62,7 +62,7 @@ export function getTokenProfile(token: string): string | null {
 
 async function requestJson(
   path: string,
-  method: 'GET' | 'POST' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   options: { body?: unknown; token?: string } = {},
 ) {
   try {
@@ -85,7 +85,7 @@ async function requestJson(
       error.response?.status === 404
     ) {
       throw new Error(
-        'O backend não encontrou a rota de cadastro administrativo /cadastro.',
+        'Não foi possível concluir o cadastro administrativo.',
         { cause: error },
       )
     }
@@ -135,7 +135,7 @@ export async function login(email: string, senha: string): Promise<AuthSession> 
     typeof result.usuario.email !== 'string' ||
     typeof result.token !== 'string'
   ) {
-    throw new Error('A API retornou dados de login em um formato inesperado.')
+    throw new Error('Não foi possível concluir o acesso.')
   }
 
   const perfil = getTokenProfile(result.token)
@@ -158,7 +158,7 @@ export async function login(email: string, senha: string): Promise<AuthSession> 
 export async function listUsers(token: string): Promise<DirectoryUser[]> {
   const result = await requestJson('/usuarios', 'GET', { token })
   if (!Array.isArray(result)) {
-    throw new Error('A API retornou uma lista de usuários em formato inesperado.')
+    throw new Error('Não foi possível carregar a lista de usuários.')
   }
 
   return result.map((value) => {
@@ -174,7 +174,7 @@ export async function listUsers(token: string): Promise<DirectoryUser[]> {
         value.ativo !== 0 &&
         value.ativo !== 1)
     ) {
-      throw new Error('A API retornou um usuário em formato inesperado.')
+      throw new Error('Não foi possível carregar os dados do usuário.')
     }
 
     return {
@@ -197,8 +197,8 @@ export async function createCollaborator(
     telefone: string
     senha: string
   },
-) {
-  return requestJson('/cadastro', 'POST', {
+): Promise<{ id: number; nome: string; reativado: boolean }> {
+  const result = await requestJson('/cadastro', 'POST', {
     token,
     body: {
       perfil_id: 2,
@@ -207,6 +207,30 @@ export async function createCollaborator(
       telefone: input.telefone,
       senha: input.senha,
     },
+  })
+  if (
+    !isRecord(result) ||
+    typeof result.id !== 'number' ||
+    typeof result.nome !== 'string' ||
+    typeof result.reativado !== 'boolean'
+  ) {
+    throw new Error('Não foi possível confirmar o cadastro do colaborador.')
+  }
+  return {
+    id: result.id,
+    nome: result.nome,
+    reativado: result.reativado,
+  }
+}
+
+export function updateUserProfile(
+  token: string,
+  userId: number,
+  input: { nome: string; email: string; tel: string },
+) {
+  return requestJson(`/usuarios/${userId}`, 'PUT', {
+    token,
+    body: input,
   })
 }
 

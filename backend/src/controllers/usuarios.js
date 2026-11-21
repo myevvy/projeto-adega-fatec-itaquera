@@ -1,7 +1,7 @@
 import usuarioModel from "../models/auth/usuarios.js";
 import sessaoModel from "../models/auth/sessoes.js";
 import "../../config/env.js";
-import admin from "../../config/firebaseAdmin.js"; // NOVO
+import admin from "../../config/firebaseAdmin.js"; // NOVO (Firebase)
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
@@ -16,14 +16,13 @@ const getUsuarios = async (req, res) => {
     console.error("Erro ao buscar usuários:", erro.message);
 
     return res.status(500).json({
-      mensagem:
-        "Erro interno ao recuperar usuários... Comunique-nos sobre o ocorrido",
+      mensagem: "Não foi possível carregar os usuários.",
     });
   }
 };
 
 const cadastro = async (req, res) => {
-  // NOVO: fica fora do try para o catch poder desfazer a criação no Firebase
+  // NOVO (Firebase): fica fora do try para o catch poder desfazer a criação no Firebase
   let firebaseUid = null;
   let salvoNoBanco = false;
 
@@ -45,15 +44,71 @@ const cadastro = async (req, res) => {
       });
     }
 
-    const usuarioExiste = await usuarioModel.getUsuario(email);
+    const usuarioExiste = await usuarioModel.getUsuarioPorEmail(email);
 
     if (usuarioExiste) {
+      if (!usuarioExiste.ativo) {
+        if (Number(usuarioExiste.perfil_id) !== Number(perfil_id)) {
+          return res.status(409).json({
+            mensagem: "Esse usuário já existe.",
+          });
+        }
+
+        // NOVO (Firebase): como o desativarUsuario desativa a conta no Firebase,
+        // ao reativar é preciso reativá-la (com a senha informada agora).
+        // Se a conta não existir no Firebase, cria.
+        try {
+          try {
+            const usuarioFirebase = await admin.auth().getUserByEmail(email);
+
+            await admin.auth().updateUser(usuarioFirebase.uid, {
+              disabled: false,
+              password: senha,
+              displayName: nome,
+            });
+          } catch (erroBusca) {
+            if (erroBusca.code !== "auth/user-not-found") throw erroBusca;
+
+            await admin.auth().createUser({
+              email,
+              password: senha,
+              displayName: nome,
+            });
+          }
+        } catch (erroFirebase) {
+          if (
+            erroFirebase.code === "auth/invalid-password" ||
+            erroFirebase.code === "auth/weak-password"
+          ) {
+            return res.status(400).json({
+              mensagem: "A senha deve ter pelo menos 6 caracteres.",
+            });
+          }
+
+          console.error(
+            "Erro ao reativar usuário no Firebase:",
+            erroFirebase.message,
+          );
+          return res.status(502).json({
+            mensagem: "Erro ao reativar o acesso do usuário. Tente novamente.",
+          });
+        }
+
+        await usuarioModel.alterarStatus(usuarioExiste.id, 1);
+        return res.status(200).json({
+          mensagem: "Colaborador reativado com sucesso.",
+          id: usuarioExiste.id,
+          nome: usuarioExiste.nome,
+          reativado: true,
+        });
+      }
+
       return res.status(409).json({
         mensagem: "Esse usuário já existe.",
       });
     }
 
-    // NOVO: cria a conta no Firebase (é ela que permite recuperar a senha por e-mail)
+    // NOVO (Firebase): cria a conta no Firebase (é ela que permite recuperar a senha por e-mail)
     try {
       const usuarioFirebase = await admin.auth().createUser({
         email,
@@ -98,7 +153,7 @@ const cadastro = async (req, res) => {
     );
 
     if (!idUsuario) {
-      // NOVO: desfaz no Firebase para não ficar conta órfã
+      // NOVO (Firebase): desfaz no Firebase para não ficar conta órfã
       await admin.auth().deleteUser(firebaseUid).catch(() => {});
       return res.status(400).json({
         mensagem: "Não foi possível cadastrar o usuário.",
@@ -110,22 +165,30 @@ const cadastro = async (req, res) => {
     return res.status(201).json({
       mensagem: "Usuário cadastrado com sucesso!",
       id: idUsuario,
+      nome,
+      reativado: false,
     });
   } catch (erro) {
     console.log("Erro no cadastro:", erro.message);
 
-    // NOVO: se o erro veio depois de criar no Firebase, desfaz
+    // NOVO (Firebase): se o erro veio depois de criar no Firebase, desfaz
     if (firebaseUid && !salvoNoBanco) {
       await admin.auth().deleteUser(firebaseUid).catch(() => {});
     }
 
+    if (erro.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        mensagem: "Esse usuário já existe.",
+      });
+    }
+
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar usuário.",
+      mensagem: "Não foi possível cadastrar o usuário.",
     });
   }
 };
 
-// ALTERADO: agora o e-mail e a senha são conferidos pelo Firebase (no front).
+// O e-mail e a senha são conferidos pelo Firebase (no front).
 // O front manda o idToken e este controller devolve o JWT/sessão de sempre.
 const login = async (req, res) => {
   try {
@@ -188,7 +251,7 @@ const login = async (req, res) => {
     console.log("Erro no login:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao logar usuário.",
+      mensagem: "Não foi possível realizar o acesso.",
     });
   }
 };
@@ -210,13 +273,13 @@ const logout = async (req, res) => {
     console.log("Erro no logout:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao deslogar usuário.",
+      mensagem: "Não foi possível encerrar a sessão.",
     });
   }
 };
 
 const putUsuario = async (req, res) => {
-  // NOVO: guarda o e-mail antigo para desfazer no Firebase se o MySQL falhar
+  // NOVO (Firebase): guarda o e-mail antigo para desfazer no Firebase se o MySQL falhar
   let emailAlteradoNoFirebase = null;
 
   const desfazerEmailNoFirebase = async () => {
@@ -255,7 +318,7 @@ const putUsuario = async (req, res) => {
       });
     }
 
-    // NOVO: mantém e-mail/senha do Firebase iguais aos do sistema
+    // NOVO (Firebase): mantém e-mail/senha do Firebase iguais aos do sistema
     const mudouEmail = email && email !== usuarioExiste.email;
 
     if (senha || mudouEmail) {
@@ -276,7 +339,6 @@ const putUsuario = async (req, res) => {
           };
         }
       } catch (erroFirebase) {
-        // NOVO: mensagens específicas para os erros do Firebase
         if (erroFirebase.code === "auth/email-already-exists") {
           return res.status(409).json({
             mensagem: "Esse e-mail já está em uso.",
@@ -324,7 +386,7 @@ const putUsuario = async (req, res) => {
     );
 
     if (!atualizado) {
-      await desfazerEmailNoFirebase(); // NOVO
+      await desfazerEmailNoFirebase(); // NOVO (Firebase)
       return res.status(400).json({
         mensagem: "Não foi possível atualizar o usuário.",
       });
@@ -335,9 +397,9 @@ const putUsuario = async (req, res) => {
     });
   } catch (erro) {
     console.log("Erro no update:", erro.message);
-    await desfazerEmailNoFirebase(); // NOVO
+    await desfazerEmailNoFirebase(); // NOVO (Firebase)
     return res.status(500).json({
-      mensagem: "Erro interno ao atualizar usuário.",
+      mensagem: "Não foi possível atualizar o usuário.",
     });
   }
 };
@@ -369,11 +431,9 @@ const desativarUsuario = async (req, res) => {
       });
     }
 
-    // NOVO: desativa a conta no Firebase e derruba as sessões abertas.
-    // Como o alterarStatus(id) daqui só desativa, o Firebase também só desativa.
-    // Se o status virar alternável (ativar/desativar), troque "disabled: true"
-    // para refletir o novo status. Se falhar, só registra no log: o login já
-    // barra por usuario.ativo.
+    // NOVO (Firebase): desativa a conta no Firebase e derruba as sessões abertas.
+    // Ao reativar (pelo cadastro), a conta é reativada lá em cima.
+    // Se falhar, só registra no log: o login já barra por usuario.ativo.
     try {
       const usuarioFirebase = await admin
         .auth()
@@ -395,7 +455,7 @@ const desativarUsuario = async (req, res) => {
     console.log("Erro no alterar status:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro ao alterar status do usuário.",
+      mensagem: "Não foi possível alterar o status do usuário.",
     });
   }
 };

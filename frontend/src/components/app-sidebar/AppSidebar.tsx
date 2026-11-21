@@ -96,11 +96,20 @@ function ReportIcon() {
   )
 }
  
-function GearIcon() {
+function GearIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg {...iconBase}>
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      viewBox="0 0 24 24"
+    >
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
       <circle cx="12" cy="12" r="3" />
-      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" />
     </svg>
   )
 }
@@ -168,7 +177,6 @@ function AppSidebar({ currentPage, onNavigate, userName}: AppSidebarProps) {
 
   return (
     <>
-      {/* Desktop: menu lateral */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[#e3dfd2] bg-[#faf8f2] px-4 py-6 lg:flex">
         <div className="flex items-center gap-3 px-2">
           <span
@@ -237,7 +245,6 @@ function AppSidebar({ currentPage, onNavigate, userName}: AppSidebarProps) {
         </footer>
       </aside>
  
-      {/* Mobile: painel "Mais" */}
       {moreOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button
@@ -295,7 +302,6 @@ function AppSidebar({ currentPage, onNavigate, userName}: AppSidebarProps) {
         </div>
       )}
  
-      {/* Mobile: barra inferior */}
       <nav
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-50 border-t border-[#e3dfd2] bg-[#faf8f2]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"

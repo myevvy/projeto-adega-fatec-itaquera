@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AppSidebar from '../../components/app-sidebar/AppSidebar'
 import type { AppPath, SetupData } from '../../types'
@@ -123,6 +123,12 @@ function StockRestockPage({
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!receipt) return
+    const timeout = window.setTimeout(() => onNavigate('estoque'), 2000)
+    return () => window.clearTimeout(timeout)
+  }, [onNavigate, receipt])
 
   const selectedProduct = products.find(
     (product) => product.id === Number(productId) && product.active,

@@ -15,7 +15,7 @@ const getProdutos = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar produtos... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar os produtos.",
     });
   }
 };
@@ -80,7 +80,7 @@ const postProdutos = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar produto.",
+      mensagem: "Não foi possível cadastrar o produto.",
     });
   }
 };
@@ -116,14 +116,14 @@ const putProdutos = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao atualizar produto... Comunique-nos sobre o ocorrido",
+        "Não foi possível atualizar o produto.",
     });
   }
 };
 
 const alterarQuantidade = async (req, res) => {
   try {
-    const { quantidade, tipo, quantidadeMovimentada } = req.body;
+    const { quantidade, tipo, quantidadeMovimentada, motivo, observacao } = req.body;
     const { id } = req.params;
     const { id: usuario_id } = req.usuario;
 
@@ -132,13 +132,14 @@ const alterarQuantidade = async (req, res) => {
 
     if (novaMovimentacao) {
       if (
-        !["entrada", "saida"].includes(tipo) ||
+        !["entrada", "saida", "ajuste"].includes(tipo) ||
         !Number.isSafeInteger(quantidadeMovimentada) ||
-        quantidadeMovimentada <= 0
+        ((tipo === "entrada" || tipo === "saida") &&
+          quantidadeMovimentada <= 0)
       ) {
         return res.status(400).json({
           mensagem:
-            "Informe uma entrada ou saída e uma quantidade inteira maior que zero.",
+            "Informe uma entrada, saída ou ajuste e uma quantidade inteira válida.",
         });
       }
     } else if (!Number.isSafeInteger(quantidade) || quantidade < 0) {
@@ -150,7 +151,7 @@ const alterarQuantidade = async (req, res) => {
 
     const saldoAtualizado = await produtosModels.alterarQuantidade(
       id,
-      { quantidade, tipo, quantidadeMovimentada },
+      { quantidade, tipo, quantidadeMovimentada, motivo, observacao },
       usuario_id,
     );
 
@@ -172,7 +173,7 @@ const alterarQuantidade = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao alterar quantidade.",
+      mensagem: "Não foi possível atualizar a quantidade.",
     });
   }
 };
@@ -193,7 +194,7 @@ const deleteProdutos = async (req, res) => {
 
     if (!linhasAfetadas) {
       return res.status(404).json({
-        mensagem: "Erro ao deletar produto.",
+        mensagem: "Não foi possível excluir o produto.",
       });
     }
 
@@ -204,7 +205,7 @@ const deleteProdutos = async (req, res) => {
     console.log("Erro no delete produto:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao deletar produto.",
+      mensagem: "Não foi possível excluir o produto.",
     });
   }
 };
@@ -229,7 +230,7 @@ const reativarProduto = async (req, res) => {
 
     if (!linhasAfetadas) {
       return res.status(404).json({
-        mensagem: "Erro ao reativar produto.",
+        mensagem: "Não foi possível reativar o produto.",
       });
     }
 
@@ -240,7 +241,7 @@ const reativarProduto = async (req, res) => {
     console.log("Erro no reativar produto:", erro.message);
 
     return res.status(500).json({
-      mensagem: "Erro interno ao reativar produto.",
+      mensagem: "Não foi possível reativar o produto.",
     });
   }
 };
@@ -255,7 +256,7 @@ const getProdutosInativos = async (_req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar produtos inativos... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar os produtos indisponíveis.",
     });
   }
 };
@@ -271,7 +272,7 @@ const getHistoricoPreco = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar histórico de preços... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar o histórico de preços.",
     });
   }
 };
@@ -286,7 +287,7 @@ const getEstoqueAlertas = async (_req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar produtos em alerta... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar os alertas de estoque.",
     });
   }
 };

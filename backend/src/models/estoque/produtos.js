@@ -186,7 +186,7 @@ const alterarQuantidade = async (id, dados, usuario_id) => {
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      `SELECT quantidade_estoque
+      `SELECT quantidade_estoque, custo_aquisicao
          FROM produto
         WHERE id = ? AND ativo = TRUE
         FOR UPDATE`,
@@ -224,11 +224,46 @@ const alterarQuantidade = async (id, dados, usuario_id) => {
       [novoSaldo, id],
     );
 
-    await conn.query(
-      `INSERT INTO produto_usuario (produto_id, usuario_id)
-       VALUES (?, ?)`,
-      [id, usuario_id],
-    );
+    if (dados.tipo !== undefined) {
+      const motivoNormalizado = String(dados.motivo ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "_");
+      const motivo = ["PERDA", "CONTAGEM", "DEVOLUCAO", "OUTRO"].includes(
+        motivoNormalizado,
+      )
+        ? motivoNormalizado
+        : null;
+
+      const quantidadeMovimentada =
+        dados.tipo === "entrada"
+          ? dados.quantidadeMovimentada
+          : dados.tipo === "saida"
+            ? -dados.quantidadeMovimentada
+            : novoSaldo - saldoAtual;
+      const tipoMovimentacao =
+        dados.tipo === "saida" && motivo === "PERDA"
+          ? "PERDA"
+          : "AJUSTE_MANUAL";
+
+      await conn.query(
+        `INSERT INTO movimentacao_estoque
+           (produto_id, usuario_id, tipo, quantidade, saldo_apos,
+            motivo, observacao, custo_unitario)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          usuario_id,
+          tipoMovimentacao,
+          quantidadeMovimentada,
+          novoSaldo,
+          motivo,
+          dados.observacao?.trim() || null,
+          rows[0].custo_aquisicao,
+        ],
+      );
+    }
 
     await conn.commit();
 

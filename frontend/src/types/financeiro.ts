@@ -1,4 +1,5 @@
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão'
+export type CardType = 'CREDITO' | 'DEBITO'
 
 export type SaleRecord = {
   id: string
@@ -10,6 +11,7 @@ export type SaleRecord = {
     unitPrice: number
   }[]
   paymentMethod: PaymentMethod | 'Não informado'
+  cardType?: CardType
   total: number
   status?: string
 }
@@ -18,6 +20,12 @@ export type ExpenseCategory =
   | 'Fixa (contas, aluguel)'
   | 'Compras de fornecedores'
   | 'Outras despesas'
+
+export type ExpenseCategoryOption = {
+  id: number
+  name: string
+  type: string
+}
 
 export type ExpenseRecord = {
   id: string
@@ -40,5 +48,10 @@ export type PurchaseRecord = {
   unitCost: number
   date: string
   total: number
+  paymentMethod?: PurchasePaymentMethod
+  paymentTermDays?: number
+  freightAndTaxes?: number
   status?: string
 }
+
+export type PurchasePaymentMethod = 'DINHEIRO' | 'PIX' | 'CARTAO' | 'BOLETO'

@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout from '../../components/auth-layout/AuthLayout'
 import FormField from '../../components/form-field/FormField'
 
@@ -7,11 +8,39 @@ type LoginPageProps = {
   onLogin: (email: string, password: string) => Promise<void>
 }
 
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      viewBox="0 0 24 24"
+    >
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  )
+}
+
 function LoginPage({ onForgotPassword, onLogin }: LoginPageProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loggedOut] = useState(
+    () => Boolean((location.state as { loggedOut?: boolean } | null)?.loggedOut),
+  )
+
+  useEffect(() => {
+    if (loggedOut) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [loggedOut, location.pathname, navigate])
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -34,10 +63,7 @@ function LoginPage({ onForgotPassword, onLogin }: LoginPageProps) {
 
   return (
     <AuthLayout description="Gestão de vendas e estoque">
-      <form
-        className="flex flex-col gap-4 text-left"
-        onSubmit={submit}
-      >
+      <form className="flex flex-col gap-4 text-left" onSubmit={submit}>
         <h2 className="text-base font-semibold text-[#1c1f1a]">Entrar na sua conta</h2>
         <div className="flex flex-col gap-4">
           <FormField
@@ -78,6 +104,15 @@ function LoginPage({ onForgotPassword, onLogin }: LoginPageProps) {
         >
           {isSubmitting ? 'Entrando...' : 'Entrar'}
         </button>
+        {loggedOut && !error && (
+          <p
+            className="flex items-center gap-3 rounded-xl bg-[#e3e9db] px-4 py-3 text-sm font-semibold text-[#3b4a2b]"
+            role="status"
+          >
+            <CheckIcon />
+            <span className="min-w-0">Sessão encerrada com sucesso.</span>
+          </p>
+        )}
         <p className="text-center text-sm text-gray-500">
           Acesso disponível para usuários cadastrados pelo administrador.
         </p>

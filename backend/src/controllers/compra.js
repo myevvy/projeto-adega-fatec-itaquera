@@ -12,7 +12,7 @@ const getCompras = async (_req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar compras... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar as compras.",
     });
   }
 };
@@ -29,7 +29,7 @@ const getComprasFornecedor = async (req, res) => {
 
     return res.status(500).json({
       mensagem:
-        "Erro interno ao recuperar compras do fornecedor... Comunique-nos sobre o ocorrido",
+        "Não foi possível carregar as compras desse fornecedor.",
     });
   }
 };
@@ -90,7 +90,7 @@ const postCompra = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cadastrar compra.",
+      mensagem: "Não foi possível concluir o cadastro da compra.",
     });
   }
 };
@@ -136,7 +136,7 @@ const cancelarCompra = async (req, res) => {
     }
 
     return res.status(500).json({
-      mensagem: "Erro interno ao cancelar compra.",
+      mensagem: "Não foi possível cancelar a compra.",
     });
   }
 };

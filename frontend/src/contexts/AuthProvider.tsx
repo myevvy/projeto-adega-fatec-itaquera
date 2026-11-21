@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authenticatedSession = await loginRequest(email, senha)
     const expiration = getTokenExpiration(authenticatedSession.token)
     if (!expiration || expiration <= Date.now()) {
-      throw new Error('A API retornou um token inválido ou expirado.')
+      throw new Error('Não foi possível validar a sessão.')
     }
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedSession))
@@ -91,8 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }
 
+  const updateSessionUser = (
+    user: Pick<AuthSession['usuario'], 'nome' | 'email'>,
+  ) => {
+    if (!session) return
+    const updatedSession = {
+      ...session,
+      usuario: { ...session.usuario, ...user },
+    }
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedSession))
+    setSession(updatedSession)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, login, logout }}>
+    <AuthContext.Provider value={{ session, login, logout, updateSessionUser }}>
       {children}
     </AuthContext.Provider>
   )
